@@ -111,6 +111,69 @@
     radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.96) 0, rgba(2, 6, 23, 1) 100%);
 }
 
+.gt-wireframe-scene {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.95;
+}
+
+.gt-wireframe-plane {
+  position: absolute;
+  inset: 12% -14% -22%;
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.22) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.22) 1px, transparent 1px);
+  background-size: 13vw 13vw;
+  transform: perspective(1200px) rotateX(62deg);
+  transform-origin: center;
+}
+
+.gt-wireframe-platform {
+  position: absolute;
+  width: min(74vw, 620px);
+  aspect-ratio: 1.7 / 1;
+  left: 50%;
+  top: 56%;
+  transform: translate(-50%, -50%) perspective(900px) rotateX(53deg);
+  border: 2px solid rgba(203, 213, 225, 0.45);
+  box-shadow: 0 0 0 1px rgba(226, 232, 240, 0.2) inset;
+}
+
+.gt-wire-bar {
+  position: absolute;
+  width: 5px;
+  border-radius: 999px;
+  background: linear-gradient(to bottom, rgba(226, 232, 240, 0.97), rgba(226, 232, 240, 0.74));
+  transform-origin: bottom center;
+  transform: translate(-50%, -100%) perspective(800px) rotateX(18deg);
+}
+
+.gt-wire-bar-1 { left: 41%; top: 58%; height: 130px; }
+.gt-wire-bar-2 { left: 45%; top: 52%; height: 200px; }
+.gt-wire-bar-3 { left: 48%; top: 56%; height: 104px; }
+.gt-wire-bar-4 { left: 51%; top: 60%; height: 85px; }
+.gt-wire-bar-5 { left: 54%; top: 54%; height: 176px; }
+.gt-wire-bar-6 { left: 57%; top: 58%; height: 122px; }
+.gt-wire-bar-7 { left: 60%; top: 51%; height: 148px; }
+.gt-wire-bar-8 { left: 63%; top: 55%; height: 108px; }
+
+@media (max-width: 720px) {
+  .gt-wireframe-platform {
+    width: min(86vw, 520px);
+  }
+
+  .gt-wire-bar-1 { left: 37%; height: 96px; }
+  .gt-wire-bar-2 { left: 42%; height: 142px; }
+  .gt-wire-bar-3 { left: 46%; height: 92px; }
+  .gt-wire-bar-4 { left: 51%; height: 78px; }
+  .gt-wire-bar-5 { left: 55%; height: 128px; }
+  .gt-wire-bar-6 { left: 59%; height: 102px; }
+  .gt-wire-bar-7 { left: 64%; height: 118px; }
+  .gt-wire-bar-8 { left: 69%; height: 88px; }
+}
+
 .gt-hero-overlay,
 .gt-grid-overlay {
   position: absolute;

@@ -323,6 +323,20 @@ export default function MapExperience() {
       <div className="fixed inset-0">
         <div ref={mapContainerRef} className="absolute inset-0" />
         {!hasToken ? <div className="gt-tokenless-backdrop" /> : null}
+        {!hasToken && scene === "grid" ? (
+          <div className="gt-wireframe-scene" aria-hidden>
+            <div className="gt-wireframe-plane" />
+            <div className="gt-wireframe-platform" />
+            <span className="gt-wire-bar gt-wire-bar-1" />
+            <span className="gt-wire-bar gt-wire-bar-2" />
+            <span className="gt-wire-bar gt-wire-bar-3" />
+            <span className="gt-wire-bar gt-wire-bar-4" />
+            <span className="gt-wire-bar gt-wire-bar-5" />
+            <span className="gt-wire-bar gt-wire-bar-6" />
+            <span className="gt-wire-bar gt-wire-bar-7" />
+            <span className="gt-wire-bar gt-wire-bar-8" />
+          </div>
+        ) : null}
         <div className={`gt-hero-overlay ${scene === "grid" ? "opacity-0" : "opacity-100"}`} />
         <div className={`gt-grid-overlay ${scene === "grid" ? "opacity-100" : "opacity-0"}`} />
       </div>

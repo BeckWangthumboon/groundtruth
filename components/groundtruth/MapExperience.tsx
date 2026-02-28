@@ -44,6 +44,29 @@ export default function MapExperience() {
   const lastFrameTimeRef = useRef<number>(0);
   const sceneRef = useRef<SceneMode>(scene);
 
+  const applyHeroAtmosphere = useCallback((map: mapboxgl.Map) => {
+    map.setProjection("globe");
+    map.setFog({
+      color: "#050c1f",
+      "high-color": "#111b33",
+      "space-color": "#02050e",
+      "horizon-blend": 0.08,
+      "star-intensity": 0.35,
+    });
+  }, []);
+
+  const clearAtmosphere = useCallback((map: mapboxgl.Map) => {
+    map.setFog(null);
+  }, []);
+
+  const runWhenStyleReady = useCallback((map: mapboxgl.Map, callback: () => void) => {
+    if (map.isStyleLoaded()) {
+      callback();
+      return;
+    }
+    map.once("style.load", callback);
+  }, []);
+
   useEffect(() => {
     sceneRef.current = scene;
   }, [scene]);
@@ -101,33 +124,31 @@ export default function MapExperience() {
           .setLngLat(location.coordinates)
           .addTo(map);
 
-        map.setProjection("mercator");
-        map.flyTo({
-          center: location.coordinates,
-          zoom: 14,
-          pitch: 58,
-          bearing: -36,
-          duration: 2500,
-          essential: true,
-          easing: (value) => 1 - Math.pow(1 - value, 3),
-        });
-
-        const drawLayers = () => {
+        const enterGridMode = () => {
+          if (sceneRef.current !== "grid") return;
+          map.setProjection("mercator");
+          clearAtmosphere(map);
+          map.flyTo({
+            center: location.coordinates,
+            zoom: 14,
+            pitch: 58,
+            bearing: -36,
+            offset: [0, 160],
+            duration: 2500,
+            essential: true,
+            easing: (value) => 1 - Math.pow(1 - value, 3),
+          });
           drawRiskLayers(map, nextGrid);
         };
 
-        if (map.isStyleLoaded()) {
-          drawLayers();
-        } else {
-          map.once("style.load", drawLayers);
-        }
+        runWhenStyleReady(map, enterGridMode);
       }
 
       window.requestAnimationFrame(() => {
         gridSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     },
-    [stopRotation]
+    [clearAtmosphere, runWhenStyleReady, stopRotation]
   );
 
   useEffect(() => {
@@ -148,18 +169,17 @@ export default function MapExperience() {
     });
 
     map.on("style.load", () => {
-      map.setProjection("globe");
-      map.setFog({
-        color: "#050c1f",
-        "high-color": "#111b33",
-        "space-color": "#02050e",
-        "horizon-blend": 0.08,
-        "star-intensity": 0.35,
-      });
+      if (sceneRef.current === "hero") {
+        applyHeroAtmosphere(map);
+        return;
+      }
+      map.setProjection("mercator");
+      clearAtmosphere(map);
     });
 
     map.on("mousemove", (event) => {
       if (sceneRef.current !== "grid") return;
+      if (!map.isStyleLoaded()) return;
 
       const features = map.queryRenderedFeatures(event.point, {
         layers: [GT_LAYER_IDS.extrusion],
@@ -203,7 +223,6 @@ export default function MapExperience() {
     });
 
     mapRef.current = map;
-    startRotation();
 
     return () => {
       popupRef.current?.remove();
@@ -212,7 +231,7 @@ export default function MapExperience() {
       map.remove();
       mapRef.current = null;
     };
-  }, [hasToken, startRotation, stopRotation]);
+  }, [applyHeroAtmosphere, clearAtmosphere, hasToken, stopRotation]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -220,28 +239,27 @@ export default function MapExperience() {
 
     if (scene === "hero") {
       map.stop();
-      map.setProjection("globe");
-      map.easeTo({
-        center: HERO_CENTER,
-        zoom: HERO_ZOOM,
-        pitch: 0,
-        bearing: 0,
-        duration: 1800,
+      runWhenStyleReady(map, () => {
+        if (sceneRef.current !== "hero") return;
+        applyHeroAtmosphere(map);
+        map.easeTo({
+          center: HERO_CENTER,
+          zoom: HERO_ZOOM,
+          pitch: 0,
+          bearing: 0,
+          duration: 1800,
+        });
+        startRotation();
       });
-      map.setFog({
-        color: "#050c1f",
-        "high-color": "#111b33",
-        "space-color": "#02050e",
-        "horizon-blend": 0.08,
-        "star-intensity": 0.35,
-      });
-      startRotation();
       return;
     }
 
     stopRotation();
-    map.setFog(undefined);
-  }, [scene, startRotation, stopRotation]);
+    runWhenStyleReady(map, () => {
+      if (sceneRef.current !== "grid") return;
+      clearAtmosphere(map);
+    });
+  }, [applyHeroAtmosphere, clearAtmosphere, runWhenStyleReady, scene, startRotation, stopRotation]);
 
   useEffect(() => {
     if (!hasToken) return;
@@ -368,7 +386,7 @@ export default function MapExperience() {
           <SearchBar
             query={query}
             loading={isSearching}
-            disabled={false}
+            disabled={scene !== "hero"}
             suggestions={suggestions}
             onQueryChange={(value) => {
               setQuery(value);

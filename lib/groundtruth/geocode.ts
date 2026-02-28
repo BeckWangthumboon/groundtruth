@@ -56,7 +56,10 @@ export async function fetchGeocodingSuggestions(
   endpoint.searchParams.set("q", query.trim());
   endpoint.searchParams.set("autocomplete", "true");
   endpoint.searchParams.set("limit", "6");
-  endpoint.searchParams.set("types", "address,street,place,locality,neighborhood,poi");
+  endpoint.searchParams.set(
+    "types",
+    "country,region,postcode,district,place,locality,neighborhood,street,address,secondary_address"
+  );
   endpoint.searchParams.set("language", "en");
   endpoint.searchParams.set("access_token", accessToken);
 

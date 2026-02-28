@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "skills": {
+    "mapbox-cartography": {
+      "source": "mapbox/mapbox-agent-skills",
+      "sourceType": "github",
+      "computedHash": "83b485ff21d1e48a1b78f6bd7e581f538431b8df3fc40bbadbe4a81e7ce9dcf5"
+    },
+    "mapbox-data-visualization-patterns": {
+      "source": "mapbox/mapbox-agent-skills",
+      "sourceType": "github",
+      "computedHash": "37c6e711eee485837309bd7f3630c3d6dcfb63b94a924ddd13cc252281f56467"
+    },
+    "mapbox-geospatial-operations": {
+      "source": "mapbox/mapbox-agent-skills",
+      "sourceType": "github",
+      "computedHash": "8d64a99cda97056350dabf272909723dc422c3817dee2db142f60a67f6efb37b"
+    },
+    "mapbox-search-integration": {
+      "source": "mapbox/mapbox-agent-skills",
+      "sourceType": "github",
+      "computedHash": "48ac28939d05d5cad4c4267b4c7ef10acc01f2a3e3bb797348bfe011d224b8c9"
+    },
+    "mapbox-search-patterns": {
+      "source": "mapbox/mapbox-agent-skills",
+      "sourceType": "github",
+      "computedHash": "9e62c93fe3028e0b1abfe3c560884d5aab1964e4368cb152fe1fe5a2c4c28ef1"
+    },
+    "mapbox-store-locator-patterns": {
+      "source": "mapbox/mapbox-agent-skills",
+      "sourceType": "github",
+      "computedHash": "87270b5ba1058ee8741b16a76651bc3a83d64ec965487c800734d61e114ab2c0"
+    },
+    "mapbox-style-patterns": {
+      "source": "mapbox/mapbox-agent-skills",
+      "sourceType": "github",
+      "computedHash": "88f9d0525d694baa9bea9af6f6f1d2de2de4c3dc962ece5af34c4aa0d8c4f2e9"
+    },
+    "mapbox-style-quality": {
+      "source": "mapbox/mapbox-agent-skills",
+      "sourceType": "github",
+      "computedHash": "4d4febd64d703977cb6de2c1e6d42aa1668419c9a6aa6ab55ea6f838cb14664b"
+    },
+    "mapbox-token-security": {
+      "source": "mapbox/mapbox-agent-skills",
+      "sourceType": "github",
+      "computedHash": "a507dd1b8791d09a1c31e5b8988a5db009f5406626d772927e77c16245d0ea3b"
+    },
+    "mapbox-web-integration-patterns": {
+      "source": "mapbox/mapbox-agent-skills",
+      "sourceType": "github",
+      "computedHash": "e0494db88315b601691fa8bfed5ac626fadd1114473d8fa7e077ab6a1d6e0133"
+    },
+    "mapbox-web-performance-patterns": {
+      "source": "mapbox/mapbox-agent-skills",
+      "sourceType": "github",
+      "computedHash": "fbc865fcc67d97a68fcdc5d2a532222f38470b742a2d9cd67c8c53fa26e62208"
+    }
+  }
+}

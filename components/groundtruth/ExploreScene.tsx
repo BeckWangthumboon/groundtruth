@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { AlertCircle, BarChart3, ChevronLeft, Layers3, Sparkles } from "lucide-react";
+import { AlertCircle, ChevronLeft, Layers3 } from "lucide-react";
 import SearchBar from "@/components/groundtruth/SearchBar";
 import { hasMapboxToken, MAPBOX_TOKEN, MAP_STYLE_GRID } from "@/lib/groundtruth/config";
 import { fetchFirstGeocodeResult, fetchGeocodingSuggestions } from "@/lib/groundtruth/geocode";
@@ -153,13 +153,24 @@ export default function ExploreScene() {
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: MAP_STYLE_GRID,
-      projection: "mercator",
+      projection: "globe",
       center: selectedLocationRef.current.coordinates,
       zoom: 12,
       pitch: 52,
       bearing: -22,
       antialias: true,
       attributionControl: false,
+    });
+
+    map.on("style.load", () => {
+      map.setProjection("globe");
+      map.setFog({
+        color: "#15223d",
+        "high-color": "#22345f",
+        "space-color": "#040916",
+        "horizon-blend": 0.08,
+        "star-intensity": 0.6,
+      });
     });
 
     map.on("load", () => {
@@ -398,23 +409,6 @@ export default function ExploreScene() {
             </article>
           </section>
 
-          <aside className="gt-panel pointer-events-auto w-full max-w-[26rem] md:absolute md:top-12 md:right-0 self-end">
-            <h3 className="text-lg font-semibold text-slate-100 mb-4">Scene Notes</h3>
-            <ul className="space-y-3 text-sm text-slate-300/90">
-              <li className="flex items-start gap-2">
-                <Sparkles className="w-4 h-4 mt-0.5 text-cyan-300" />
-                <span>Bars animate in with staggered growth and high-risk pulse.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <BarChart3 className="w-4 h-4 mt-0.5 text-amber-300" />
-                <span>Grid cells are seeded from coordinates for stable location signatures.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <Layers3 className="w-4 h-4 mt-0.5 text-indigo-300" />
-                <span>Hover bars to inspect risk index and extrusion height.</span>
-              </li>
-            </ul>
-          </aside>
         </div>
       </main>
     </div>

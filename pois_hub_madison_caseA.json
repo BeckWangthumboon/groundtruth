@@ -1,0 +1,1492 @@
+{
+  "countsByLabel": {
+    "essentials_nearby": 18,
+    "healthcare_access": 10,
+    "transit_access": 104,
+    "parking_availability": 523,
+    "green_space": 20,
+    "nightlife_density": 51,
+    "family_friendly": 6,
+    "fitness_recreation": 15,
+    "personal_care": 16
+  },
+  "points": [
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0744631,
+      "lng": -89.395329,
+      "weight": 0.6
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0730825,
+      "lng": -89.3901072,
+      "weight": 0.6,
+      "name": "Vogue Hair Company"
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0681941,
+      "lng": -89.3913625,
+      "weight": 0.62,
+      "name": "Echo Tap and Grill"
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0727008,
+      "lng": -89.3844171,
+      "weight": 0.62,
+      "name": "Genna's Cocktail Lounge"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0749592,
+      "lng": -89.3895515,
+      "weight": 0.9,
+      "name": "State & W Johnson (EB)"
+    },
+    {
+      "type": "essentials_nearby",
+      "categories": [
+        "essentials_nearby"
+      ],
+      "lat": 43.0669283,
+      "lng": -89.4001088,
+      "weight": 0.75,
+      "name": "UW Health Park Street Pharmacy"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0771513,
+      "lng": -89.3814822,
+      "weight": 0.6,
+      "name": "Capital Fitness"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0746955,
+      "lng": -89.3964212,
+      "weight": 0.6,
+      "name": "Fashion Salon"
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0746889,
+      "lng": -89.395998,
+      "weight": 0.62,
+      "name": "State Street Brats"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0677425,
+      "lng": -89.4015423,
+      "weight": 0.9,
+      "name": "Regent & N Park (WB)"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.070275,
+      "lng": -89.3844863,
+      "weight": 0.9,
+      "name": "W Wilson & S Hamilton (EB)"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0735328,
+      "lng": -89.3955381,
+      "weight": 0.6,
+      "name": "Blue Lotus Tattoo"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0722109,
+      "lng": -89.3837742,
+      "weight": 0.85
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0729856,
+      "lng": -89.3917699,
+      "weight": 0.6
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0695442,
+      "lng": -89.3905267,
+      "weight": 0.85
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0712225,
+      "lng": -89.389247,
+      "weight": 0.9,
+      "name": "W Washington & N Broom (WB)"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0737572,
+      "lng": -89.3960041,
+      "weight": 0.85
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0691479,
+      "lng": -89.4036235,
+      "weight": 0.85
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0736328,
+      "lng": -89.3900077,
+      "weight": 0.85
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.076776,
+      "lng": -89.4009771,
+      "weight": 0.85,
+      "name": "Helen C. White Garage"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0736364,
+      "lng": -89.3949474,
+      "weight": 0.6,
+      "name": "Magico Barbershop"
+    },
+    {
+      "type": "green_space",
+      "categories": [
+        "green_space"
+      ],
+      "lat": 43.0746998,
+      "lng": -89.3841668,
+      "weight": 0.6,
+      "name": "Capitol Square"
+    },
+    {
+      "type": "essentials_nearby",
+      "categories": [
+        "essentials_nearby"
+      ],
+      "lat": 43.0750932,
+      "lng": -89.3962807,
+      "weight": 0.75,
+      "name": "Stop & Shop"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0695393,
+      "lng": -89.3930279,
+      "weight": 0.85
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0699644,
+      "lng": -89.3910237,
+      "weight": 0.9,
+      "name": "W Washington & N Bassett (WB)"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.067723,
+      "lng": -89.3956539,
+      "weight": 0.6,
+      "name": "Paradise Nails"
+    },
+    {
+      "type": "green_space",
+      "categories": [
+        "green_space"
+      ],
+      "lat": 43.0667473,
+      "lng": -89.397171,
+      "weight": 0.6
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0783345,
+      "lng": -89.391655,
+      "weight": 0.85
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0729657,
+      "lng": -89.3856523,
+      "weight": 0.6
+    },
+    {
+      "type": "essentials_nearby",
+      "categories": [
+        "essentials_nearby"
+      ],
+      "lat": 43.0780092,
+      "lng": -89.3820908,
+      "weight": 0.75,
+      "name": "Stop N Shop"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0734483,
+      "lng": -89.3942656,
+      "weight": 0.6
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0745258,
+      "lng": -89.3810698,
+      "weight": 0.62,
+      "name": "Oz by Oz"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0726528,
+      "lng": -89.3989036,
+      "weight": 0.6,
+      "name": "Aveda Institute Madison"
+    },
+    {
+      "type": "green_space",
+      "categories": [
+        "green_space"
+      ],
+      "lat": 43.0772387,
+      "lng": -89.3952925,
+      "weight": 0.6
+    },
+    {
+      "type": "family_friendly",
+      "categories": [
+        "family_friendly"
+      ],
+      "lat": 43.0637043,
+      "lng": -89.3981926,
+      "weight": 0.58
+    },
+    {
+      "type": "healthcare_access",
+      "categories": [
+        "healthcare_access"
+      ],
+      "lat": 43.0659627,
+      "lng": -89.4024586,
+      "weight": 0.8,
+      "name": "UnityPoint Health - Meriter"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0786811,
+      "lng": -89.3877244,
+      "weight": 0.85
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.069452,
+      "lng": -89.4011077,
+      "weight": 0.9,
+      "name": "N Park & Spring (SB)"
+    },
+    {
+      "type": "green_space",
+      "categories": [
+        "green_space"
+      ],
+      "lat": 43.0742784,
+      "lng": -89.3994077,
+      "weight": 0.6,
+      "name": "Class of 1920 Memorial Plaza"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0747401,
+      "lng": -89.3892419,
+      "weight": 0.9,
+      "name": "State Street (EB)"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0709353,
+      "lng": -89.3824278,
+      "weight": 0.85
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0763315,
+      "lng": -89.4000259,
+      "weight": 0.62,
+      "name": "Stiftskeller"
+    },
+    {
+      "type": "essentials_nearby",
+      "categories": [
+        "essentials_nearby"
+      ],
+      "lat": 43.0727958,
+      "lng": -89.3902364,
+      "weight": 0.75,
+      "name": "Capitol Centre Market"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0691913,
+      "lng": -89.4007643,
+      "weight": 0.9,
+      "name": "N Park & Spring (NB)"
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0715321,
+      "lng": -89.4077874,
+      "weight": 0.62,
+      "name": "The Sett"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0656728,
+      "lng": -89.3955233,
+      "weight": 0.6
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0746069,
+      "lng": -89.390898,
+      "weight": 0.62,
+      "name": "Mackesey's Irish Pub"
+    },
+    {
+      "type": "green_space",
+      "categories": [
+        "green_space"
+      ],
+      "lat": 43.0766214,
+      "lng": -89.4027128,
+      "weight": 0.6,
+      "name": "Robert E. Gard Storyteller's Circle"
+    },
+    {
+      "type": "healthcare_access",
+      "categories": [
+        "healthcare_access"
+      ],
+      "lat": 43.0667654,
+      "lng": -89.4017588,
+      "weight": 0.8,
+      "name": "UW Health 20 South Park Street Clinic South Building"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.075659,
+      "lng": -89.3974614,
+      "weight": 0.85
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0730075,
+      "lng": -89.387346,
+      "weight": 0.85
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0708755,
+      "lng": -89.4000294,
+      "weight": 0.9,
+      "name": "W Dayton & N Park (EB)"
+    },
+    {
+      "type": "essentials_nearby",
+      "categories": [
+        "essentials_nearby"
+      ],
+      "lat": 43.0695267,
+      "lng": -89.3896946,
+      "weight": 0.75,
+      "name": "Bassett Food Mart"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0768206,
+      "lng": -89.3913339,
+      "weight": 0.85
+    },
+    {
+      "type": "family_friendly",
+      "categories": [
+        "family_friendly"
+      ],
+      "lat": 43.0761812,
+      "lng": -89.3835261,
+      "weight": 0.58,
+      "name": "Wisconsin ESL Institute"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0657088,
+      "lng": -89.4018522,
+      "weight": 0.85
+    },
+    {
+      "type": "family_friendly",
+      "categories": [
+        "family_friendly"
+      ],
+      "lat": 43.072832,
+      "lng": -89.3898276,
+      "weight": 0.58
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.075199,
+      "lng": -89.4075281,
+      "weight": 0.9,
+      "name": "Linden & N Charter (WB)"
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0734264,
+      "lng": -89.3959888,
+      "weight": 0.62,
+      "name": "Wando's Bar & Grill"
+    },
+    {
+      "type": "essentials_nearby",
+      "categories": [
+        "essentials_nearby"
+      ],
+      "lat": 43.0749542,
+      "lng": -89.3936215,
+      "weight": 0.75,
+      "name": "Tjikko Market"
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0747541,
+      "lng": -89.3811472,
+      "weight": 0.62,
+      "name": "Young Blood Beer Company"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0722611,
+      "lng": -89.3975794,
+      "weight": 0.9,
+      "name": "N Lake & W Johnson (SB)"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0748537,
+      "lng": -89.3911983,
+      "weight": 0.9,
+      "name": "State Westbound"
+    },
+    {
+      "type": "green_space",
+      "categories": [
+        "green_space"
+      ],
+      "lat": 43.065422,
+      "lng": -89.3879089,
+      "weight": 0.6
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0756637,
+      "lng": -89.3971627,
+      "weight": 0.62,
+      "name": "The Kollege Klub"
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0701788,
+      "lng": -89.3911319,
+      "weight": 0.62,
+      "name": "Nitro"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0743545,
+      "lng": -89.394416,
+      "weight": 0.6,
+      "name": "Facial Collective"
+    },
+    {
+      "type": "essentials_nearby",
+      "categories": [
+        "essentials_nearby"
+      ],
+      "lat": 43.0742673,
+      "lng": -89.3821932,
+      "weight": 0.75,
+      "name": "Walgreens"
+    },
+    {
+      "type": "essentials_nearby",
+      "categories": [
+        "essentials_nearby"
+      ],
+      "lat": 43.0793185,
+      "lng": -89.3838019,
+      "weight": 0.75,
+      "name": "Pinkus McBride Market & Deli"
+    },
+    {
+      "type": "family_friendly",
+      "categories": [
+        "family_friendly"
+      ],
+      "lat": 43.0648635,
+      "lng": -89.396802,
+      "weight": 0.58
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0765537,
+      "lng": -89.3957942,
+      "weight": 0.85
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0744645,
+      "lng": -89.3948412,
+      "weight": 0.6
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0748713,
+      "lng": -89.388876,
+      "weight": 0.6,
+      "name": "Ritual Moon"
+    },
+    {
+      "type": "green_space",
+      "categories": [
+        "green_space"
+      ],
+      "lat": 43.078658,
+      "lng": -89.3865972,
+      "weight": 0.6,
+      "name": "Period Garden Park"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0726007,
+      "lng": -89.3923471,
+      "weight": 0.6
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0718295,
+      "lng": -89.3956102,
+      "weight": 0.62,
+      "name": "The Nitty Gritty"
+    },
+    {
+      "type": "green_space",
+      "categories": [
+        "green_space"
+      ],
+      "lat": 43.0820257,
+      "lng": -89.382788,
+      "weight": 0.6,
+      "name": "James Madison Park"
+    },
+    {
+      "type": "green_space",
+      "categories": [
+        "green_space"
+      ],
+      "lat": 43.0629419,
+      "lng": -89.3947057,
+      "weight": 0.6,
+      "name": "Brittingham Park"
+    },
+    {
+      "type": "essentials_nearby",
+      "categories": [
+        "essentials_nearby"
+      ],
+      "lat": 43.0765361,
+      "lng": -89.3939129,
+      "weight": 0.75,
+      "name": "MacTaggart's Market"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.071822,
+      "lng": -89.393299,
+      "weight": 0.85
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0676051,
+      "lng": -89.4061612,
+      "weight": 0.6
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0705357,
+      "lng": -89.3982807,
+      "weight": 0.6,
+      "name": "Nicholas Recreation Center"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0740515,
+      "lng": -89.4060657,
+      "weight": 0.9,
+      "name": "N Charter & University (NB)"
+    },
+    {
+      "type": "family_friendly",
+      "categories": [
+        "family_friendly"
+      ],
+      "lat": 43.0666484,
+      "lng": -89.3972361,
+      "weight": 0.58
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0733714,
+      "lng": -89.3948569,
+      "weight": 0.6,
+      "name": "Muse"
+    },
+    {
+      "type": "green_space",
+      "categories": [
+        "green_space"
+      ],
+      "lat": 43.0764321,
+      "lng": -89.3986233,
+      "weight": 0.6,
+      "name": "Alumni Park"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0705632,
+      "lng": -89.3894637,
+      "weight": 0.6,
+      "name": "Capitol Fitness"
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0750702,
+      "lng": -89.3901204,
+      "weight": 0.62,
+      "name": "Sotto"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0740823,
+      "lng": -89.3923544,
+      "weight": 0.9,
+      "name": "N Broom & W Gorham (NB)"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0674949,
+      "lng": -89.4050822,
+      "weight": 0.85
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0763591,
+      "lng": -89.4060451,
+      "weight": 0.85
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0767657,
+      "lng": -89.3845941,
+      "weight": 0.85
+    },
+    {
+      "type": "healthcare_access",
+      "categories": [
+        "healthcare_access"
+      ],
+      "lat": 43.0783062,
+      "lng": -89.385318,
+      "weight": 0.8,
+      "name": "Isthmus Dental"
+    },
+    {
+      "type": "green_space",
+      "categories": [
+        "green_space"
+      ],
+      "lat": 43.0752744,
+      "lng": -89.398995,
+      "weight": 0.6,
+      "name": "Library Mall"
+    },
+    {
+      "type": "green_space",
+      "categories": [
+        "green_space"
+      ],
+      "lat": 43.0723142,
+      "lng": -89.3860757,
+      "weight": 0.6,
+      "name": "Stations of the Cross Walking Path"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0734471,
+      "lng": -89.3972584,
+      "weight": 0.6,
+      "name": "Galaxy Nail Spa"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0735459,
+      "lng": -89.39393,
+      "weight": 0.6
+    },
+    {
+      "type": "essentials_nearby",
+      "categories": [
+        "essentials_nearby"
+      ],
+      "lat": 43.0749416,
+      "lng": -89.3903455,
+      "weight": 0.75,
+      "name": "Triangle Market"
+    },
+    {
+      "type": "green_space",
+      "categories": [
+        "green_space"
+      ],
+      "lat": 43.0696663,
+      "lng": -89.4013773,
+      "weight": 0.6,
+      "name": "Mullins Park"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0797153,
+      "lng": -89.3859594,
+      "weight": 0.85
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0789317,
+      "lng": -89.3817749,
+      "weight": 0.85
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0734511,
+      "lng": -89.4070164,
+      "weight": 0.9,
+      "name": "Orchard Station (WB)"
+    },
+    {
+      "type": "essentials_nearby",
+      "categories": [
+        "essentials_nearby"
+      ],
+      "lat": 43.0730022,
+      "lng": -89.3976601,
+      "weight": 0.75,
+      "name": "Fresh Madison Market"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0781418,
+      "lng": -89.3912869,
+      "weight": 0.85
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0756188,
+      "lng": -89.3897499,
+      "weight": 0.85
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0749504,
+      "lng": -89.3937311,
+      "weight": 0.62,
+      "name": "The Red Shed"
+    },
+    {
+      "type": "healthcare_access",
+      "categories": [
+        "healthcare_access"
+      ],
+      "lat": 43.0754428,
+      "lng": -89.3971674,
+      "weight": 0.8,
+      "name": "University Square Dental"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0719661,
+      "lng": -89.3982083,
+      "weight": 0.9,
+      "name": "W Johnson & E Campus (EB)"
+    },
+    {
+      "type": "essentials_nearby",
+      "categories": [
+        "essentials_nearby"
+      ],
+      "lat": 43.0749819,
+      "lng": -89.3910276,
+      "weight": 0.75,
+      "name": "Royal Mart"
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0748657,
+      "lng": -89.3872917,
+      "weight": 0.62,
+      "name": "Cielo"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0734339,
+      "lng": -89.3961561,
+      "weight": 0.6,
+      "name": "Hair Forum"
+    },
+    {
+      "type": "essentials_nearby",
+      "categories": [
+        "essentials_nearby"
+      ],
+      "lat": 43.0747096,
+      "lng": -89.3972217,
+      "weight": 0.75,
+      "name": "Pinkus Market"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0725795,
+      "lng": -89.3833631,
+      "weight": 0.6,
+      "name": "Boulders Climbing Gym"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0762499,
+      "lng": -89.384484,
+      "weight": 0.6,
+      "name": "Pinnacle Health + Fitness"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0766157,
+      "lng": -89.4071531,
+      "weight": 0.9,
+      "name": "Observatory & Liz Waters (WB)"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0768712,
+      "lng": -89.383625,
+      "weight": 0.6,
+      "name": "The Great Beauty Hair & Nail Salon"
+    },
+    {
+      "type": "green_space",
+      "categories": [
+        "green_space"
+      ],
+      "lat": 43.0751685,
+      "lng": -89.392534,
+      "weight": 0.6,
+      "name": "Elizabeth Link Peace Park"
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0744023,
+      "lng": -89.3871455,
+      "weight": 0.62,
+      "name": "The Ivory Room Piano Bar"
+    },
+    {
+      "type": "healthcare_access",
+      "categories": [
+        "healthcare_access"
+      ],
+      "lat": 43.0714827,
+      "lng": -89.3880463,
+      "weight": 0.8,
+      "name": "UnityPoint Health - Meriter - West Washington Clinic"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.074167,
+      "lng": -89.3850039,
+      "weight": 0.85
+    },
+    {
+      "type": "essentials_nearby",
+      "categories": [
+        "essentials_nearby"
+      ],
+      "lat": 43.0723327,
+      "lng": -89.398893,
+      "weight": 0.75,
+      "name": "Walgreens"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.072243,
+      "lng": -89.3988825,
+      "weight": 0.6,
+      "name": "Anytime Fitness"
+    },
+    {
+      "type": "healthcare_access",
+      "categories": [
+        "healthcare_access"
+      ],
+      "lat": 43.0763887,
+      "lng": -89.3844944,
+      "weight": 0.8,
+      "name": "Dental Health Associates"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0719253,
+      "lng": -89.395428,
+      "weight": 0.9,
+      "name": "W Johnson & N Frances (EB)"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0720604,
+      "lng": -89.4037304,
+      "weight": 0.9,
+      "name": "W Johnson & N Mills (EB)"
+    },
+    {
+      "type": "green_space",
+      "categories": [
+        "green_space"
+      ],
+      "lat": 43.0712977,
+      "lng": -89.3803279,
+      "weight": 0.6,
+      "name": "Law Park"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0789879,
+      "lng": -89.386242,
+      "weight": 0.85
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0747574,
+      "lng": -89.3809797,
+      "weight": 0.62,
+      "name": "Woof's"
+    },
+    {
+      "type": "healthcare_access",
+      "categories": [
+        "healthcare_access"
+      ],
+      "lat": 43.06706,
+      "lng": -89.3998294,
+      "weight": 0.8,
+      "name": "1 South Park UW Health Clinic"
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0672574,
+      "lng": -89.3920121,
+      "weight": 0.62,
+      "name": "Main Depot"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0693408,
+      "lng": -89.3979821,
+      "weight": 0.6,
+      "name": "Nicholas-Johnson Pavilion and Plaza"
+    },
+    {
+      "type": "essentials_nearby",
+      "categories": [
+        "essentials_nearby"
+      ],
+      "lat": 43.0719478,
+      "lng": -89.408298,
+      "weight": 0.75,
+      "name": "Badger Market"
+    },
+    {
+      "type": "essentials_nearby",
+      "categories": [
+        "essentials_nearby"
+      ],
+      "lat": 43.0749915,
+      "lng": -89.3912239,
+      "weight": 0.75,
+      "name": "J&P Fresh Market"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0745481,
+      "lng": -89.3950823,
+      "weight": 0.6
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0675578,
+      "lng": -89.396576,
+      "weight": 0.9,
+      "name": "Regent & W Washington (WB)"
+    },
+    {
+      "type": "healthcare_access",
+      "categories": [
+        "healthcare_access"
+      ],
+      "lat": 43.0678777,
+      "lng": -89.403812,
+      "weight": 0.8,
+      "name": "First Choice Dental"
+    },
+    {
+      "type": "healthcare_access",
+      "categories": [
+        "healthcare_access"
+      ],
+      "lat": 43.0671677,
+      "lng": -89.3941827,
+      "weight": 0.8,
+      "name": "Group Health Cooperative Capitol Clinic"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0698735,
+      "lng": -89.3904405,
+      "weight": 0.9,
+      "name": "S Bassett & W Washington (SB)"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0724288,
+      "lng": -89.38366,
+      "weight": 0.6,
+      "name": "Leopold Men's Salon"
+    },
+    {
+      "type": "green_space",
+      "categories": [
+        "green_space"
+      ],
+      "lat": 43.0730043,
+      "lng": -89.3898916,
+      "weight": 0.6,
+      "name": "Capitol Centre Park"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0732829,
+      "lng": -89.3946262,
+      "weight": 0.9,
+      "name": "University & N Bassett (WB)"
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0730776,
+      "lng": -89.4092673,
+      "weight": 0.62,
+      "name": "The Library"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0746841,
+      "lng": -89.4005276,
+      "weight": 0.9,
+      "name": "N Park & State (NB)"
+    },
+    {
+      "type": "essentials_nearby",
+      "categories": [
+        "essentials_nearby"
+      ],
+      "lat": 43.0685549,
+      "lng": -89.3923871,
+      "weight": 0.75,
+      "name": "CVS Pharmacy"
+    },
+    {
+      "type": "family_friendly",
+      "categories": [
+        "family_friendly"
+      ],
+      "lat": 43.0771826,
+      "lng": -89.3844416,
+      "weight": 0.58
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.070961,
+      "lng": -89.4070827,
+      "weight": 0.9,
+      "name": "W Dayton & N Orchard (EB)"
+    },
+    {
+      "type": "nightlife_density",
+      "categories": [
+        "nightlife_density"
+      ],
+      "lat": 43.0748865,
+      "lng": -89.3884239,
+      "weight": 0.62,
+      "name": "Botanist Social"
+    },
+    {
+      "type": "green_space",
+      "categories": [
+        "green_space"
+      ],
+      "lat": 43.0667405,
+      "lng": -89.4064816,
+      "weight": 0.6,
+      "name": "Edward Klief Park"
+    },
+    {
+      "type": "green_space",
+      "categories": [
+        "green_space"
+      ],
+      "lat": 43.0703831,
+      "lng": -89.4098336,
+      "weight": 0.6,
+      "name": "Camp Randall Memorial Park"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0731834,
+      "lng": -89.3865146,
+      "weight": 0.9,
+      "name": "W Washington & N Fairchild (WB)"
+    }
+  ],
+  "meta": {
+    "radius_m": 1200,
+    "requestedLabels": [
+      "essentials_nearby",
+      "healthcare_access",
+      "transit_access",
+      "parking_availability",
+      "green_space",
+      "nightlife_density",
+      "family_friendly",
+      "fitness_recreation",
+      "personal_care"
+    ],
+    "business_type": null,
+    "total_elements": 763,
+    "returned_points": 150,
+    "cached": false,
+    "ts": 1772365472
+  }
+}

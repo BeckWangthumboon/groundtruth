@@ -1,0 +1,1505 @@
+{
+  "countsByLabel": {
+    "food_corridor_density": 164,
+    "retail_density": 16,
+    "transit_access": 104,
+    "parking_availability": 523,
+    "anchors_nearby": 25,
+    "direct_competition": 33,
+    "personal_care": 16,
+    "fitness_recreation": 15
+  },
+  "points": [
+    {
+      "type": "retail_density",
+      "categories": [
+        "retail_density"
+      ],
+      "lat": 43.0746646,
+      "lng": -89.3924971,
+      "weight": 0.6,
+      "name": "Wisconsin Design Team"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0743545,
+      "lng": -89.394416,
+      "weight": 0.6,
+      "name": "Facial Collective"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0751282,
+      "lng": -89.3917589,
+      "weight": 0.65,
+      "name": "Red Rock Saloon"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0732829,
+      "lng": -89.3946262,
+      "weight": 0.9,
+      "name": "University & N Bassett (WB)"
+    },
+    {
+      "type": "retail_density",
+      "categories": [
+        "retail_density"
+      ],
+      "lat": 43.0725379,
+      "lng": -89.3989363,
+      "weight": 0.6,
+      "name": "pitaya"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0681381,
+      "lng": -89.4069332,
+      "weight": 0.85
+    },
+    {
+      "type": "retail_density",
+      "categories": [
+        "retail_density"
+      ],
+      "lat": 43.0746842,
+      "lng": -89.3905448,
+      "weight": 0.6,
+      "name": "Jazzman & Duet"
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.0659627,
+      "lng": -89.4024586,
+      "weight": 0.78,
+      "name": "UnityPoint Health - Meriter"
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.068716,
+      "lng": -89.3984592,
+      "weight": 0.78,
+      "name": "Hilton Garden Inn"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0745733,
+      "lng": -89.4095688,
+      "weight": 0.85
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.075659,
+      "lng": -89.3974614,
+      "weight": 0.85
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.075571,
+      "lng": -89.3865174,
+      "weight": 0.78,
+      "name": "Madison Concourse Hotel"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0750107,
+      "lng": -89.3951243,
+      "weight": 0.65,
+      "name": "Potbelly"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0733556,
+      "lng": -89.3994025,
+      "weight": 0.9,
+      "name": "East Campus Station (WB)"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0751586,
+      "lng": -89.3966655,
+      "weight": 0.65,
+      "name": "Chipotle"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density",
+        "direct_competition"
+      ],
+      "lat": 43.0746678,
+      "lng": -89.3955895,
+      "weight": 0.65,
+      "name": "Colectivo"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0757915,
+      "lng": -89.3849094,
+      "weight": 0.9,
+      "name": "Capitol Square Station (WB)"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0698157,
+      "lng": -89.3859419,
+      "weight": 0.85
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.0739028,
+      "lng": -89.3987712,
+      "weight": 0.78,
+      "name": "Chazen Museum of Art"
+    },
+    {
+      "type": "retail_density",
+      "categories": [
+        "retail_density"
+      ],
+      "lat": 43.0751307,
+      "lng": -89.3957403,
+      "weight": 0.6,
+      "name": "Urban Outfitters"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0741021,
+      "lng": -89.3907307,
+      "weight": 0.85
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0746955,
+      "lng": -89.3964212,
+      "weight": 0.6,
+      "name": "Fashion Salon"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0750992,
+      "lng": -89.3821801,
+      "weight": 0.65,
+      "name": "Graze"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0747109,
+      "lng": -89.3947777,
+      "weight": 0.6,
+      "name": "European Wax Center"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0733714,
+      "lng": -89.3948569,
+      "weight": 0.6,
+      "name": "Muse"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0705632,
+      "lng": -89.3894637,
+      "weight": 0.6,
+      "name": "Capitol Fitness"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.067352,
+      "lng": -89.3967388,
+      "weight": 0.9,
+      "name": "Regent & W Washington (EB)"
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.0729792,
+      "lng": -89.384826,
+      "weight": 0.78,
+      "name": "Best Western Premier Park Hotel"
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.0802848,
+      "lng": -89.4200388,
+      "weight": 0.78,
+      "name": "University of Wisconsin-Madison"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0768073,
+      "lng": -89.3999383,
+      "weight": 0.65,
+      "name": "Brat Stand"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0752972,
+      "lng": -89.381495,
+      "weight": 0.85,
+      "name": "Tenney Plaza Ramp"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0675695,
+      "lng": -89.4002982,
+      "weight": 0.9,
+      "name": "Regent & S Park (EB)"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0758081,
+      "lng": -89.3848851,
+      "weight": 0.9,
+      "name": "Capitol Square (WB)"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0753805,
+      "lng": -89.3931402,
+      "weight": 0.65,
+      "name": "Samba Brazilian Grill"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.07723,
+      "lng": -89.3815938,
+      "weight": 0.65,
+      "name": "Naples 15"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.073345,
+      "lng": -89.3988415,
+      "weight": 0.9,
+      "name": "East Campus (WB)"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0748713,
+      "lng": -89.388876,
+      "weight": 0.6,
+      "name": "Ritual Moon"
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.0739041,
+      "lng": -89.3994239,
+      "weight": 0.78,
+      "name": "Conrad A. Elvehjem Building"
+    },
+    {
+      "type": "retail_density",
+      "categories": [
+        "retail_density"
+      ],
+      "lat": 43.074913,
+      "lng": -89.3904773,
+      "weight": 0.6,
+      "name": "Princess of India Clothing and Jewelry"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0726528,
+      "lng": -89.3989036,
+      "weight": 0.6,
+      "name": "Aveda Institute Madison"
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.0736469,
+      "lng": -89.4054156,
+      "weight": 0.78,
+      "name": "L.R. Ingersoll Physics Museum"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0699644,
+      "lng": -89.3910237,
+      "weight": 0.9,
+      "name": "W Washington & N Bassett (WB)"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0691123,
+      "lng": -89.4065392,
+      "weight": 0.85
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0789777,
+      "lng": -89.38841,
+      "weight": 0.85
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density",
+        "direct_competition"
+      ],
+      "lat": 43.0730129,
+      "lng": -89.3988887,
+      "weight": 0.65,
+      "name": "Valentia Coffee"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.073022,
+      "lng": -89.3844786,
+      "weight": 0.65,
+      "name": "The Post"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0721564,
+      "lng": -89.4070954,
+      "weight": 0.9,
+      "name": "Orchard Station (EB)"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0735328,
+      "lng": -89.3955381,
+      "weight": 0.6,
+      "name": "Blue Lotus Tattoo"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density",
+        "direct_competition"
+      ],
+      "lat": 43.0746189,
+      "lng": -89.3872524,
+      "weight": 0.65,
+      "name": "High Crowd Cafe"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0767657,
+      "lng": -89.3845941,
+      "weight": 0.85
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0693408,
+      "lng": -89.3979821,
+      "weight": 0.6,
+      "name": "Nicholas-Johnson Pavilion and Plaza"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0749592,
+      "lng": -89.3895515,
+      "weight": 0.9,
+      "name": "State & W Johnson (EB)"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0744645,
+      "lng": -89.3948412,
+      "weight": 0.6
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0717927,
+      "lng": -89.409253,
+      "weight": 0.9,
+      "name": "N Randall & Engineering (SB)"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0752211,
+      "lng": -89.3860122,
+      "weight": 0.65,
+      "name": "Rare Steakhouse"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0729856,
+      "lng": -89.3917699,
+      "weight": 0.6
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.079042,
+      "lng": -89.3907519,
+      "weight": 0.85
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0734339,
+      "lng": -89.3961561,
+      "weight": 0.6,
+      "name": "Hair Forum"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0745481,
+      "lng": -89.3950823,
+      "weight": 0.6
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0742056,
+      "lng": -89.3810611,
+      "weight": 0.65,
+      "name": "Merchant"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0657009,
+      "lng": -89.3994785,
+      "weight": 0.85
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0729314,
+      "lng": -89.3885192,
+      "weight": 0.85
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0726007,
+      "lng": -89.3923471,
+      "weight": 0.6
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.0786749,
+      "lng": -89.3875763,
+      "weight": 0.78,
+      "name": "Mansion Hill Inn"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0735459,
+      "lng": -89.39393,
+      "weight": 0.6
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0745076,
+      "lng": -89.3932398,
+      "weight": 0.65,
+      "name": "Asian Kitchen"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0739817,
+      "lng": -89.3951984,
+      "weight": 0.65,
+      "name": "Porta Bella"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0746917,
+      "lng": -89.3961245,
+      "weight": 0.65,
+      "name": "Poke Plus"
+    },
+    {
+      "type": "retail_density",
+      "categories": [
+        "retail_density"
+      ],
+      "lat": 43.0736274,
+      "lng": -89.3972564,
+      "weight": 0.6,
+      "name": "Underground Printing"
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.073853,
+      "lng": -89.3803765,
+      "weight": 0.78,
+      "name": "Embassy Suites"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0678768,
+      "lng": -89.4055202,
+      "weight": 0.65,
+      "name": "Butterbird"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0726566,
+      "lng": -89.3956815,
+      "weight": 0.65,
+      "name": "Strings Ramen"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0651979,
+      "lng": -89.4009686,
+      "weight": 0.9,
+      "name": "S Park & Meriter Hospital (SB)"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0744631,
+      "lng": -89.395329,
+      "weight": 0.6
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.0705257,
+      "lng": -89.4059387,
+      "weight": 0.78,
+      "name": "UW Geology Museum"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0751079,
+      "lng": -89.3944421,
+      "weight": 0.65,
+      "name": "Justveggiez"
+    },
+    {
+      "type": "retail_density",
+      "categories": [
+        "retail_density"
+      ],
+      "lat": 43.0750149,
+      "lng": -89.391963,
+      "weight": 0.6,
+      "name": "August"
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.07982,
+      "lng": -89.3869324,
+      "weight": 0.78,
+      "name": "Governor's Mansion Inn"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.072243,
+      "lng": -89.3988825,
+      "weight": 0.6,
+      "name": "Anytime Fitness"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0724288,
+      "lng": -89.38366,
+      "weight": 0.6,
+      "name": "Leopold Men's Salon"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0715537,
+      "lng": -89.3976363,
+      "weight": 0.9,
+      "name": "UW-Madison Intercity Bus"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0724376,
+      "lng": -89.3804047,
+      "weight": 0.85
+    },
+    {
+      "type": "retail_density",
+      "categories": [
+        "retail_density"
+      ],
+      "lat": 43.0747233,
+      "lng": -89.396789,
+      "weight": 0.6,
+      "name": "Insignia Campus Apparel"
+    },
+    {
+      "type": "retail_density",
+      "categories": [
+        "retail_density"
+      ],
+      "lat": 43.0768976,
+      "lng": -89.3839621,
+      "weight": 0.6,
+      "name": "Lake City Books"
+    },
+    {
+      "type": "retail_density",
+      "categories": [
+        "retail_density"
+      ],
+      "lat": 43.0748651,
+      "lng": -89.3878021,
+      "weight": 0.6,
+      "name": "Vintage Badger Store"
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.0714315,
+      "lng": -89.3943001,
+      "weight": 0.78,
+      "name": "DoubleTree by Hilton Madison Downtown"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0706478,
+      "lng": -89.4017439,
+      "weight": 0.85
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.067723,
+      "lng": -89.3956539,
+      "weight": 0.6,
+      "name": "Paradise Nails"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0734471,
+      "lng": -89.3972584,
+      "weight": 0.6,
+      "name": "Galaxy Nail Spa"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0750237,
+      "lng": -89.3921646,
+      "weight": 0.65,
+      "name": "Apex Grill"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0734511,
+      "lng": -89.4070164,
+      "weight": 0.9,
+      "name": "Orchard Station (WB)"
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.0765412,
+      "lng": -89.3822811,
+      "weight": 0.78,
+      "name": "AC Hotel Madison Downtown"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0676051,
+      "lng": -89.4061612,
+      "weight": 0.6
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0714325,
+      "lng": -89.3885473,
+      "weight": 0.9,
+      "name": "W Washington & S Broom (EB)"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0716534,
+      "lng": -89.39286,
+      "weight": 0.9,
+      "name": "N Bassett & W Dayton (SB)"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0641019,
+      "lng": -89.4001014,
+      "weight": 0.85
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.0745214,
+      "lng": -89.3889084,
+      "weight": 0.78,
+      "name": "Madison Museum of Contemporary Art"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0768712,
+      "lng": -89.383625,
+      "weight": 0.6,
+      "name": "The Great Beauty Hair & Nail Salon"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0745354,
+      "lng": -89.3814973,
+      "weight": 0.65,
+      "name": "Lucille"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0674489,
+      "lng": -89.3941854,
+      "weight": 0.9,
+      "name": "W Washington & Southwest (EB)"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0747228,
+      "lng": -89.3926053,
+      "weight": 0.65,
+      "name": "Izakaya Kuroyama"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0788237,
+      "lng": -89.3849322,
+      "weight": 0.85
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.0726211,
+      "lng": -89.3803357,
+      "weight": 0.78,
+      "name": "Hilton Madison Monona Terrace"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0672481,
+      "lng": -89.3894686,
+      "weight": 0.85
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0753496,
+      "lng": -89.3858211,
+      "weight": 0.65,
+      "name": "Eloura"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0748537,
+      "lng": -89.3911983,
+      "weight": 0.9,
+      "name": "State Westbound"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.074795,
+      "lng": -89.3878115,
+      "weight": 0.9,
+      "name": "State & W Dayton (WB)"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0745575,
+      "lng": -89.3940959,
+      "weight": 0.65,
+      "name": "Paul's Pel'meni"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0774416,
+      "lng": -89.3937593,
+      "weight": 0.85
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0747052,
+      "lng": -89.3884254,
+      "weight": 0.9,
+      "name": "State & N Fairchild (EB)"
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.0761909,
+      "lng": -89.4089491,
+      "weight": 0.78,
+      "name": "Washburn Observatory"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0771513,
+      "lng": -89.3814822,
+      "weight": 0.6,
+      "name": "Capital Fitness"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0705357,
+      "lng": -89.3982807,
+      "weight": 0.6,
+      "name": "Nicholas Recreation Center"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0746094,
+      "lng": -89.386846,
+      "weight": 0.65,
+      "name": "Teddywedgers"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0682937,
+      "lng": -89.3863898,
+      "weight": 0.85
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0696223,
+      "lng": -89.3994845,
+      "weight": 0.85
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0730009,
+      "lng": -89.394713,
+      "weight": 0.65,
+      "name": "Papa John's"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0722611,
+      "lng": -89.3975794,
+      "weight": 0.9,
+      "name": "N Lake & W Johnson (SB)"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density",
+        "direct_competition"
+      ],
+      "lat": 43.0723616,
+      "lng": -89.3821473,
+      "weight": 0.65,
+      "name": "Ugly Apple"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0736364,
+      "lng": -89.3949474,
+      "weight": 0.6,
+      "name": "Magico Barbershop"
+    },
+    {
+      "type": "retail_density",
+      "categories": [
+        "retail_density"
+      ],
+      "lat": 43.0676087,
+      "lng": -89.4064341,
+      "weight": 0.6,
+      "name": "Stella's Bakery"
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.0793191,
+      "lng": -89.3900132,
+      "weight": 0.78,
+      "name": "Edgewater Hotel"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0762499,
+      "lng": -89.384484,
+      "weight": 0.6,
+      "name": "Pinnacle Health + Fitness"
+    },
+    {
+      "type": "retail_density",
+      "categories": [
+        "retail_density"
+      ],
+      "lat": 43.0751167,
+      "lng": -89.3969469,
+      "weight": 0.6,
+      "name": "RAYGUN"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0756389,
+      "lng": -89.396089,
+      "weight": 0.65,
+      "name": "Adamah Neighborhood Table"
+    },
+    {
+      "type": "personal_care",
+      "categories": [
+        "personal_care"
+      ],
+      "lat": 43.0729657,
+      "lng": -89.3856523,
+      "weight": 0.6
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0656728,
+      "lng": -89.3955233,
+      "weight": 0.6
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0751572,
+      "lng": -89.3965403,
+      "weight": 0.65,
+      "name": "Sweetgreen"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0734483,
+      "lng": -89.3942656,
+      "weight": 0.6
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.0717002,
+      "lng": -89.387599,
+      "weight": 0.78,
+      "name": "Hyatt Place"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0740168,
+      "lng": -89.3941064,
+      "weight": 0.85
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0749582,
+      "lng": -89.3899534,
+      "weight": 0.65,
+      "name": "Baked Wings and Things"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0727671,
+      "lng": -89.3840946,
+      "weight": 0.65,
+      "name": "Canteen"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.069452,
+      "lng": -89.4011077,
+      "weight": 0.9,
+      "name": "N Park & Spring (SB)"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0762125,
+      "lng": -89.4021574,
+      "weight": 0.85
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.0750903,
+      "lng": -89.3864569,
+      "weight": 0.78,
+      "name": "Wisconsin Veterans Museum"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0729056,
+      "lng": -89.395692,
+      "weight": 0.65,
+      "name": "Ian's Pizza"
+    },
+    {
+      "type": "fitness_recreation",
+      "categories": [
+        "fitness_recreation"
+      ],
+      "lat": 43.0725795,
+      "lng": -89.3833631,
+      "weight": 0.6,
+      "name": "Boulders Climbing Gym"
+    },
+    {
+      "type": "parking_availability",
+      "categories": [
+        "parking_availability"
+      ],
+      "lat": 43.0718883,
+      "lng": -89.3924972,
+      "weight": 0.85
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0791331,
+      "lng": -89.3899892,
+      "weight": 0.65,
+      "name": "The Icehouse"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density",
+        "direct_competition"
+      ],
+      "lat": 43.0732274,
+      "lng": -89.3858729,
+      "weight": 0.65,
+      "name": "Barriques - West Wash"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0744732,
+      "lng": -89.395544,
+      "weight": 0.65,
+      "name": "Comfort Fuel"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.067804,
+      "lng": -89.4014124,
+      "weight": 0.65,
+      "name": "Asian Noodle"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0719906,
+      "lng": -89.3988152,
+      "weight": 0.9,
+      "name": "East Campus (EB)"
+    },
+    {
+      "type": "retail_density",
+      "categories": [
+        "retail_density"
+      ],
+      "lat": 43.075135,
+      "lng": -89.3960441,
+      "weight": 0.6,
+      "name": "Target"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0735155,
+      "lng": -89.4094475,
+      "weight": 0.9,
+      "name": "University & N Randall (WB)"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.073117,
+      "lng": -89.3869013,
+      "weight": 0.65,
+      "name": "Casetta Kitchen & Counter"
+    },
+    {
+      "type": "food_corridor_density",
+      "categories": [
+        "food_corridor_density"
+      ],
+      "lat": 43.0677902,
+      "lng": -89.401673,
+      "weight": 0.65,
+      "name": "Sweet Home Wisconsin"
+    },
+    {
+      "type": "anchors_nearby",
+      "categories": [
+        "anchors_nearby"
+      ],
+      "lat": 43.0727344,
+      "lng": -89.3934158,
+      "weight": 0.78,
+      "name": "Hampton Inn & Suites Madison / Downtown"
+    },
+    {
+      "type": "transit_access",
+      "categories": [
+        "transit_access"
+      ],
+      "lat": 43.0719661,
+      "lng": -89.3982083,
+      "weight": 0.9,
+      "name": "W Johnson & E Campus (EB)"
+    }
+  ],
+  "meta": {
+    "radius_m": 1200,
+    "requestedLabels": [
+      "food_corridor_density",
+      "retail_density",
+      "transit_access",
+      "parking_availability",
+      "anchors_nearby",
+      "direct_competition",
+      "personal_care",
+      "fitness_recreation"
+    ],
+    "business_type": "cafe",
+    "total_elements": 863,
+    "returned_points": 150,
+    "cached": false,
+    "ts": 1772365474
+  }
+}

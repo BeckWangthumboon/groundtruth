@@ -9,6 +9,7 @@
     "strict": true,
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
+    "types": ["node"],
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
 
@@ -18,8 +19,8 @@
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "isolatedModules": true,
-    "noEmit": true
+    "noEmit": true,
   },
   "include": ["./**/*"],
-  "exclude": ["./_generated"]
+  "exclude": ["./_generated"],
 }

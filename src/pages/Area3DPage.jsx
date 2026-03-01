@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
+import { MapPin } from 'lucide-react'
 
 import 'mapbox-gl/dist/mapbox-gl.css'
+import '../App.css'
 import './area3d.css'
 
 import {
@@ -12,9 +14,10 @@ import {
 } from '@/lib/geoSquare'
 
 const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN
-const AREA_SIDE_METERS = 100
-const CAMERA_PITCH = 64
-const CAMERA_BEARING = -36
+const RADIUS_OPTIONS_KM = [0.1, 0.25, 0.5, 1]
+const DEFAULT_RADIUS_KM = 0.1
+const CAMERA_PITCH = 60
+const CAMERA_BEARING = -45
 const TERRAIN_SOURCE_ID = 'area-3d-terrain-source'
 const BUILDINGS_LAYER_ID = 'area-3d-buildings'
 
@@ -115,6 +118,9 @@ const add3DBuildings = (map) => {
 
 function Area3DPage() {
   const mapContainerRef = useRef(null)
+  const mapRef = useRef(null)
+  const selectedRadiusRef = useRef(DEFAULT_RADIUS_KM)
+  const [selectedRadiusKm, setSelectedRadiusKm] = useState(DEFAULT_RADIUS_KM)
 
   const { latitude, longitude, warnings } = useMemo(() => {
     const params = new URLSearchParams(window.location.search)
@@ -140,10 +146,33 @@ function Area3DPage() {
     }
   }, [])
 
-  const bounds = useMemo(
-    () => squareBoundsFromCenter(latitude, longitude, AREA_SIDE_METERS),
+  const formatRadiusLabel = useCallback(
+    (radiusKm) => `${radiusKm.toString().replace(/\.0$/, '')} km`,
+    []
+  )
+
+  const getBoundsForRadius = useCallback(
+    (radiusKm) => squareBoundsFromCenter(latitude, longitude, radiusKm * 2000),
     [latitude, longitude]
   )
+
+  const applyRadiusBounds = useCallback(
+    (map, radiusKm, duration = 0) => {
+      map.fitBounds(getBoundsForRadius(radiusKm), {
+        padding: getFitPadding(),
+        maxZoom: 19.2,
+        pitch: CAMERA_PITCH,
+        bearing: CAMERA_BEARING,
+        duration,
+        essential: true,
+      })
+    },
+    [getBoundsForRadius]
+  )
+
+  useEffect(() => {
+    selectedRadiusRef.current = selectedRadiusKm
+  }, [selectedRadiusKm])
 
   useEffect(() => {
     if (!accessToken || !mapContainerRef.current) {
@@ -160,27 +189,40 @@ function Area3DPage() {
       pitch: CAMERA_PITCH,
       bearing: CAMERA_BEARING,
       antialias: true,
+      interactive: false,
+      dragPan: false,
+      scrollZoom: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      dragRotate: false,
+      keyboard: false,
+      touchZoomRotate: false,
+      pitchWithRotate: false,
+      minPitch: CAMERA_PITCH,
+      maxPitch: CAMERA_PITCH,
+      config: {
+        basemap: {
+          theme: 'monochrome',
+          lightPreset: 'night',
+        },
+      },
+      attributionControl: false,
     })
+    mapRef.current = map
 
-    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right')
-
-    const centerMarker = new mapboxgl.Marker({ color: '#ef4444' })
+    const centerMarker = new mapboxgl.Marker({ color: '#eef4ff' })
       .setLngLat([longitude, latitude])
       .addTo(map)
 
-    const applyBounds = (duration = 0) => {
-      map.fitBounds(bounds, {
-        padding: getFitPadding(),
-        maxZoom: 19.2,
-        pitch: CAMERA_PITCH,
-        bearing: CAMERA_BEARING,
-        duration,
-        essential: true,
-      })
-    }
-
     map.on('style.load', () => {
-      applyBounds(900)
+      map.setFog({
+        color: 'rgb(8, 11, 18)',
+        'high-color': 'rgb(22, 26, 35)',
+        'horizon-blend': 0.08,
+        'space-color': 'rgb(1, 2, 5)',
+        'star-intensity': 0.45,
+      })
+      applyRadiusBounds(map, selectedRadiusRef.current, 900)
 
       try {
         enableTerrain(map)
@@ -195,42 +237,72 @@ function Area3DPage() {
       }
     })
 
-    const handleResize = () => applyBounds(0)
+    const handleResize = () => applyRadiusBounds(map, selectedRadiusRef.current, 0)
     window.addEventListener('resize', handleResize)
 
     return () => {
       window.removeEventListener('resize', handleResize)
       centerMarker.remove()
       map.remove()
+      mapRef.current = null
     }
-  }, [bounds, latitude, longitude])
+  }, [applyRadiusBounds, latitude, longitude])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !map.isStyleLoaded()) {
+      return
+    }
+    applyRadiusBounds(map, selectedRadiusKm, 600)
+  }, [applyRadiusBounds, selectedRadiusKm])
 
   return (
-    <div className="area3d-shell">
-      <div ref={mapContainerRef} className="area3d-map" />
+    <div className="app-shell app-shell--searched area3d-shell">
+      <div id="map-container" ref={mapContainerRef} />
 
-      <aside className="area3d-panel">
-        <h1>Area 3D View</h1>
-        <p>
-          Center: <strong>{latitude.toFixed(6)}</strong>, <strong>{longitude.toFixed(6)}</strong>
-        </p>
-        <p>Extent: 0.1 km x 0.1 km square</p>
+      <main className="ui-layer area3d-ui-layer">
+        <section className="search-shell area3d-toolbar">
+          <MapPin className="search-icon area3d-pin" size={19} />
+          <div className="area3d-copy">
+            <p className="area3d-title">Area 3D View</p>
+            <p className="area3d-meta">
+              {latitude.toFixed(6)}, {longitude.toFixed(6)} · {formatRadiusLabel(selectedRadiusKm)} radius
+            </p>
+          </div>
+        </section>
+        <section className="search-shell area3d-radius-shell">
+          {RADIUS_OPTIONS_KM.map((radiusKm) => {
+            const isActive = selectedRadiusKm === radiusKm
+            return (
+              <button
+                key={radiusKm}
+                type="button"
+                aria-pressed={isActive}
+                className={`goto-button area3d-radius-button${isActive ? ' area3d-radius-button--active' : ''}`}
+                onClick={() => setSelectedRadiusKm(radiusKm)}
+              >
+                {formatRadiusLabel(radiusKm)}
+              </button>
+            )
+          })}
+        </section>
         <p className="area3d-hint">Pass coordinates as ?lat=&lt;value&gt;&amp;lon=&lt;value&gt;.</p>
-
         {warnings.length > 0 && (
-          <ul className="area3d-warnings">
+          <ul className="area3d-alerts">
             {warnings.map((warning) => (
-              <li key={warning}>{warning}</li>
+              <li key={warning} className="area3d-alert area3d-alert--warning">
+                {warning}
+              </li>
             ))}
           </ul>
         )}
 
         {!accessToken && (
-          <p className="area3d-error">
+          <p className="area3d-alert area3d-alert--error">
             Missing VITE_MAPBOX_ACCESS_TOKEN in your .env file. The map cannot be rendered.
           </p>
         )}
-      </aside>
+      </main>
     </div>
   )
 }

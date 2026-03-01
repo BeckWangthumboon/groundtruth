@@ -22,15 +22,17 @@ import { toSimCategory, CATEGORY_COLORS, DEFAULT_COLOR } from './categories.js'
 // Shared colour ramp used by Heatmap and Hexagon layers
 // ---------------------------------------------------------------------------
 
-/** Blue → teal → green → yellow → orange → red */
-const ACTIVITY_COLOR_RANGE = [
+/** Blue → teal → green → yellow → orange → red
+ *  @type {import('@deck.gl/core').Color[]}
+ */
+const ACTIVITY_COLOR_RANGE = /** @type {import('@deck.gl/core').Color[]} */ ([
   [1, 152, 189],
   [73, 227, 206],
   [216, 254, 181],
   [254, 237, 177],
   [254, 173, 84],
   [209, 55, 78],
-]
+])
 
 // ---------------------------------------------------------------------------
 // Individual layer builders
@@ -39,7 +41,7 @@ const ACTIVITY_COLOR_RANGE = [
 /**
  * HeatmapLayer – continuous ambient glow showing overall activity density.
  *
- * @param {{ pois: object[], currentHour: number, dayType: string, focusMode: string, densityScale: number }} opts
+ * @param {{ pois: object[], currentHour: number, dayType: 'weekday'|'weekend', focusMode: 'tenant'|'business', densityScale: number }} opts
  * @returns {HeatmapLayer}
  */
 export function createHeatmapLayer({ pois, currentHour, dayType, focusMode, densityScale }) {
@@ -63,7 +65,7 @@ export function createHeatmapLayer({ pois, currentHour, dayType, focusMode, dens
  * HexagonLayer – 3D extruded columns that grow/shrink with activity level.
  * The 800 ms transition on `elevationScale` provides the "wow" animation.
  *
- * @param {{ pois: object[], currentHour: number, dayType: string, focusMode: string, densityScale: number }} opts
+ * @param {{ pois: object[], currentHour: number, dayType: 'weekday'|'weekend', focusMode: 'tenant'|'business', densityScale: number }} opts
  * @returns {HexagonLayer}
  */
 export function createHexagonLayer({ pois, currentHour, dayType, focusMode, densityScale }) {
@@ -92,7 +94,7 @@ export function createHexagonLayer({ pois, currentHour, dayType, focusMode, dens
  * ScatterplotLayer – individual POI dots sized and coloured by activity.
  * Alpha scales from dim (quiet) to bright (busy).
  *
- * @param {{ pois: object[], currentHour: number, dayType: string, focusMode: string, densityScale: number }} opts
+ * @param {{ pois: object[], currentHour: number, dayType: 'weekday'|'weekend', focusMode: 'tenant'|'business', densityScale: number }} opts
  * @returns {ScatterplotLayer}
  */
 export function createScatterplotLayer({ pois, currentHour, dayType, focusMode, densityScale }) {
@@ -109,7 +111,9 @@ export function createScatterplotLayer({ pois, currentHour, dayType, focusMode, 
       const cat = toSimCategory(d.type)
       const w = computeWeight(d, currentHour, dayType, focusMode, densityScale)
       const rgb = CATEGORY_COLORS[cat] ?? DEFAULT_COLOR
-      return [...rgb, Math.round(80 + w * 175)]  // alpha: dim when quiet, bright when busy
+      /** @type {import('@deck.gl/core').Color} */
+      const color = /** @type {any} */ ([...rgb, Math.round(80 + w * 175)])
+      return color  // alpha: dim when quiet, bright when busy
     },
     updateTriggers: {
       getRadius: trigger,

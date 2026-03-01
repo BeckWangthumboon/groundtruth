@@ -41,3 +41,6 @@
  * @property {number} population    - Total population (B01003)
  * @property {number} tractAreaSqM  - Census tract land area in square metres (from TIGER aland)
  */
+
+// Required for TypeScript to treat this as an ES module.
+export {}

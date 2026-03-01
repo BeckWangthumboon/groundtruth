@@ -27,11 +27,12 @@ const SAMPLE_TRACT_GEOJSON = {
   properties: { geoid: '14000US55025001704' },
 }
 
+/** @type {{ pois: object[], currentHour: number, dayType: 'weekday'|'weekend', focusMode: 'tenant'|'business', densityScale: number }} */
 const BASE_PARAMS = {
   pois: SAMPLE_POIS,
   currentHour: 12,
-  dayType: 'weekday',
-  focusMode: 'business',
+  dayType: /** @type {'weekday'} */ ('weekday'),
+  focusMode: /** @type {'business'} */ ('business'),
   densityScale: 1.0,
 }
 

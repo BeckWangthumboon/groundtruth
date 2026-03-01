@@ -67,7 +67,9 @@ describe('computeDensityScale()', () => {
 // ---------------------------------------------------------------------------
 
 const ALL_OVERPASS_TYPES = ['food', 'retail', 'grocery', 'healthcare', 'parking', 'transit', 'nightlife', 'parks']
+/** @type {Array<'weekday'|'weekend'>} */
 const ALL_DAY_TYPES = ['weekday', 'weekend']
+/** @type {Array<'tenant'|'business'>} */
 const ALL_FOCUS_MODES = ['tenant', 'business']
 
 describe('computeWeight() – output range', () => {
@@ -92,13 +94,14 @@ describe('computeWeight() – output range', () => {
   })
 
   it('handles missing poi.type gracefully', () => {
-    const w = computeWeight({}, 12, 'weekday', 'business', 1.0)
+    const poiNoType = /** @type {any} */ ({})
+    const w = computeWeight(poiNoType, 12, 'weekday', 'business', 1.0)
     expect(w).toBeGreaterThanOrEqual(0)
     expect(w).toBeLessThanOrEqual(1.0)
   })
 
   it('handles null poi gracefully', () => {
-    const w = computeWeight(null, 12, 'weekday', 'business', 1.0)
+    const w = computeWeight(/** @type {any} */ (null), 12, 'weekday', 'business', 1.0)
     expect(w).toBeGreaterThanOrEqual(0)
     expect(w).toBeLessThanOrEqual(1.0)
   })

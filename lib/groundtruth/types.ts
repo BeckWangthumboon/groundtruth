@@ -1,5 +1,3 @@
-export type SceneMode = "hero" | "grid";
-
 export interface GeocodeSuggestion {
   id: string;
   label: string;

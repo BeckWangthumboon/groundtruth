@@ -1,5 +1,5 @@
-import MapExperience from "@/components/groundtruth/MapExperience";
+import LandingHero from "@/components/groundtruth/LandingHero";
 
 export default function Home() {
-  return <MapExperience />;
+  return <LandingHero />;
 }

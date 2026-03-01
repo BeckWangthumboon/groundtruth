@@ -11,20 +11,7 @@ const center = [-45, 30]
 const secondsPerRevolution = 160
 const maxSpinZoom = 3.4
 const homeZoom = 1.65
-
-const closeInZoomByFeatureType = {
-  address: 17.2,
-  poi: 16.8,
-  street: 16.3,
-  neighborhood: 14.8,
-  locality: 13.6,
-  place: 13.2,
-  district: 12.5,
-  region: 10.8,
-  country: 5.5,
-}
-
-const getCloseInZoom = (featureType) => closeInZoomByFeatureType[featureType] ?? 16.2
+const streetLevelZoom = 17.5
 const toFiniteNumber = (value) => {
   const numberValue = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(numberValue) ? numberValue : null
@@ -150,6 +137,7 @@ function App() {
   const [mapInstance, setMapInstance] = useState(null)
   const [inputValue, setInputValue] = useState('')
   const [isGoToPending, setIsGoToPending] = useState(false)
+  const [hasSearched, setHasSearched] = useState(false)
 
   useEffect(() => {
     if (!accessToken) {
@@ -240,9 +228,6 @@ function App() {
         lat = (south + north) / 2
       }
 
-      const featureType = feature?.properties?.feature_type
-      const targetZoom = getCloseInZoom(featureType)
-
       pauseGlobeRotation()
       map.stop()
 
@@ -252,33 +237,15 @@ function App() {
         resumeGlobeRotation()
       })
 
-      if (hasBounds) {
-        const [west, south, east, north] = bounds
-        map.fitBounds(
-          [
-            [west, south],
-            [east, north],
-          ],
-          {
-            maxZoom: targetZoom,
-            padding: 92,
-            duration,
-            pitch: 50,
-            bearing: -20,
-            essential: true,
-          }
-        )
-      } else {
-        map.flyTo({
-          center: [lng, lat],
-          zoom: targetZoom,
-          pitch: 50,
-          bearing: -20,
-          duration,
-          essential: true,
-          easing: (t) => 1 - Math.pow(1 - t, 3),
-        })
-      }
+      map.flyTo({
+        center: [lng, lat],
+        zoom: streetLevelZoom,
+        pitch: 50,
+        bearing: -20,
+        duration,
+        essential: true,
+        easing: (t) => 1 - Math.pow(1 - t, 3),
+      })
 
       return true
     },
@@ -323,7 +290,11 @@ function App() {
 
       setIsGoToPending(true)
       try {
-        return await geocodeAndFlyToAddress(trimmedQuery)
+        const didMove = await geocodeAndFlyToAddress(trimmedQuery)
+        if (didMove) {
+          setHasSearched(true)
+        }
+        return didMove
       } finally {
         setIsGoToPending(false)
       }
@@ -347,7 +318,10 @@ function App() {
         setInputValue(nextInputValue)
       }
 
-      flyToSearchFeature(feature)
+      const didMove = flyToSearchFeature(feature)
+      if (didMove) {
+        setHasSearched(true)
+      }
     },
     [flyToSearchFeature]
   )
@@ -355,6 +329,10 @@ function App() {
   const handleGoToClick = useCallback(() => {
     void submitGoToQuery(inputValue)
   }, [inputValue, submitGoToQuery])
+
+  const searchPopoverOptions = hasSearched
+    ? { placement: 'top-start', flip: false, offset: 10 }
+    : { placement: 'bottom-start', flip: false, offset: 10 }
 
   useEffect(() => {
     let isDisposed = false
@@ -411,11 +389,11 @@ function App() {
   }, [submitGoToQuery])
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${hasSearched ? ' app-shell--searched' : ''}`}>
       <div id="map-container" ref={mapContainerRef} />
 
       <main className="ui-layer">
-        <div className="search-shell">
+        <div className={`search-shell${hasSearched ? ' search-shell--docked' : ''}`}>
           <Search className="search-icon" size={19} />
 
           <div className="search-box-wrap">
@@ -424,6 +402,7 @@ function App() {
               map={mapInstance}
               mapboxgl={mapboxgl}
               value={inputValue}
+              popoverOptions={searchPopoverOptions}
               proximity={center}
               onChange={setInputValue}
               componentOptions={{ flyTo: false }}

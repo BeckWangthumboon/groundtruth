@@ -1,4 +1,5 @@
 import { buildCensusChartSections } from './censusChartModel'
+import { CENSUS_SECTION_ORDER, CENSUS_SECTIONS, CENSUS_TABLE_CATALOG, SNAPSHOT_TABLE_IDS } from './censusTableCatalog'
 
 const SECTION_ORDER = ['demographics', 'economics', 'families', 'housing', 'social']
 const SELECTOR_KIND_ORDER = ['tract', 'place', 'zcta', 'county']
@@ -12,8 +13,6 @@ const SELECTOR_LABELS = {
 function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value)
 }
-import { CENSUS_SECTION_ORDER, CENSUS_SECTIONS, CENSUS_TABLE_CATALOG, SNAPSHOT_TABLE_IDS } from './censusTableCatalog'
-import { buildCensusChartSections } from './censusChartModel'
 
 function formatNumber(value, maxFractionDigits = 1) {
   if (!isFiniteNumber(value)) {

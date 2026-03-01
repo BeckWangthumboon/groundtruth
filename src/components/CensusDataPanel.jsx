@@ -146,6 +146,11 @@ function MetricCard({ metric }) {
 }
 
 function SectionView({ section }) {
+  const metricsGridClassName =
+    section.id === 'demographics'
+      ? 'census-metrics-grid census-metrics-grid--demographics'
+      : 'census-metrics-grid'
+
   return (
     <div className="census-section-view">
       {section.hasHighMoe ? (
@@ -154,7 +159,7 @@ function SectionView({ section }) {
         </aside>
       ) : null}
 
-      <div className="census-metrics-grid">
+      <div className={metricsGridClassName}>
         {section.metrics.map((metric) => (
           <MetricCard key={metric.id} metric={metric} />
         ))}

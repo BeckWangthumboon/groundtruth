@@ -830,6 +830,10 @@ body {
   gap: 10px;
 }
 
+.census-metrics-grid--demographics {
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+}
+
 .census-metric-card {
   border-radius: 12px;
   border: 1px solid rgba(151, 177, 220, 0.2);

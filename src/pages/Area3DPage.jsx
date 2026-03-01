@@ -13,7 +13,8 @@ import {
   LONGITUDE_LIMIT,
   squareBoundsFromCenter,
 } from '@/lib/geoSquare'
-import { fetchNearbyPois, fetchTractGeo } from '@/lib/api'
+// import { fetchNearbyPois, fetchTractGeo } from '@/lib/api'
+import { generateMockPois } from '@/lib/simulation/mockPois'
 import { buildSimulationLayers } from '@/lib/simulation/layers'
 import { computeDensityScale } from '@/lib/simulation/engine'
 import { TimeSlider } from '@/components/simulation/TimeSlider'
@@ -215,31 +216,10 @@ function Area3DPage() {
       setSimLoading(true)
       setSimError(null)
       try {
-        const radiusM = Math.round(selectedRadiusRef.current * 1000)
-        const [poisResult, tractResult] = await Promise.allSettled([
-          fetchNearbyPois({ lat: latitude, lon: longitude, radiusM, signal }),
-          fetchTractGeo({ lat: latitude, lon: longitude, signal }),
-        ])
-
-        if (poisResult.status === 'fulfilled') {
-          const points = poisResult.value?.points ?? []
-          setPois(points)
-
-          // Derive density scale from population and tract area if possible
-          const pop = poisResult.value?.meta?.population
-          const aland = poisResult.value?.meta?.aland
-          if (pop && aland) {
-            setDensityScale(computeDensityScale(pop, aland))
-          }
-        } else if (!signal.aborted) {
-          console.warn('POI fetch failed:', poisResult.reason)
-          setSimError('Could not load nearby places. Simulation will run without POI data.')
-        }
-
-        if (tractResult.status === 'fulfilled') {
-          setTractGeoJson(tractResult.value)
-        }
-        // Tract geo failure is silent – the layer just won't render
+        // TODO: restore real API calls once Overpass / Census endpoints are stable
+        const mock = generateMockPois(latitude, longitude)
+        setPois(mock.points)
+        setDensityScale(computeDensityScale(mock.meta.population, mock.meta.aland))
       } catch (err) {
         if (!signal.aborted) {
           console.error('Simulation data load error:', err)

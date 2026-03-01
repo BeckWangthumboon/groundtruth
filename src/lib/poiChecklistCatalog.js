@@ -8,18 +8,11 @@ const INDIVIDUAL_CHECKLIST_ITEMS = Object.freeze([
   { id: 'green_space', label: 'Parks' },
   { id: 'noise_nightlife_density', label: 'Nightlife Noise' },
   { id: 'fitness_recreation', label: 'Fitness' },
-  { id: 'overall_safety_level', label: 'Safety' },
-  { id: 'crime_hotspots_nearby', label: 'Hotspots' },
-  { id: 'top_crime_types', label: 'Crime Types' },
-  { id: 'flood_risk', label: 'Flood' },
-  { id: 'heat_risk', label: 'Heat' },
-  { id: 'storm_wind_risk', label: 'Storm/Wind' },
-  { id: 'overall_disaster_disruption_risk', label: 'Disruption' },
 ])
 
 const SMALL_BIZ_CHECKLIST_ITEMS = Object.freeze([
   {
-    id: 'foot_traffic_activity_proxy',
+    id: 'foot_traffic_proxy',
     label: 'Foot Traffic',
   },
   { id: 'retail_density', label: 'Retail' },
@@ -28,12 +21,6 @@ const SMALL_BIZ_CHECKLIST_ITEMS = Object.freeze([
   { id: 'transit_access', label: 'Transit' },
   { id: 'parking_access', label: 'Parking' },
   { id: 'direct_competition', label: 'Competition' },
-  { id: 'safety_level', label: 'Safety' },
-  { id: 'crime_hotspots_and_types', label: 'Crime Mix' },
-  { id: 'flood_risk', label: 'Flood' },
-  { id: 'heat_risk', label: 'Heat' },
-  { id: 'storm_wind_risk', label: 'Storm/Wind' },
-  { id: 'overall_disruption_risk', label: 'Disruption' },
 ])
 
 export const POI_CHECKLIST_ITEMS_BY_USER_TYPE = Object.freeze({

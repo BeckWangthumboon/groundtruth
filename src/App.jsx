@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import mapboxgl from 'mapbox-gl'
 import { SearchBox } from '@mapbox/search-js-react'
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
@@ -8,7 +8,14 @@ import { AnalysisLoadingOverlay } from './components/AnalysisLoadingOverlay'
 import { CensusDataPanel } from './components/CensusDataPanel'
 import { PersonaChecklistPanel } from './components/PersonaChecklistPanel'
 import { useUserType } from './hooks/useUserType'
-import { fetchCensusByPoint } from './lib/api'
+import { fetchCensusByPoint, fetchDynamicPois } from './lib/api'
+import {
+  buildPoiMarkerColorExpression,
+  createEmptyPoiFeatureCollection,
+  filterPoiPointsByCheckedLabels,
+  POI_MARKER_RADIUS_PX,
+  toPoiFeatureCollection,
+} from './lib/poiDynamicMap'
 import {
   createInitialChecklistState,
   getChecklistItemsForUserType,
@@ -24,6 +31,52 @@ const secondsPerRevolution = 160
 const maxSpinZoom = 3.4
 const homeZoom = 2.4
 const streetLevelZoom = 17.5
+const dynamicPoiRadiusM = 1200
+const dynamicPoiSourceId = 'dynamic-poi-source'
+const dynamicPoiLayerId = 'dynamic-poi-layer'
+const dynamicPoiColorExpression = buildPoiMarkerColorExpression()
+const enablePoiDebugLogs = import.meta.env.DEV
+
+function syncDynamicPoiSource(map, featureCollection) {
+  if (!map || !map.isStyleLoaded()) {
+    return
+  }
+
+  if (!map.getSource(dynamicPoiSourceId)) {
+    map.addSource(dynamicPoiSourceId, {
+      type: 'geojson',
+      data: createEmptyPoiFeatureCollection(),
+    })
+  }
+
+  if (!map.getLayer(dynamicPoiLayerId)) {
+    map.addLayer({
+      id: dynamicPoiLayerId,
+      type: 'circle',
+      source: dynamicPoiSourceId,
+      paint: {
+        'circle-color': dynamicPoiColorExpression,
+        'circle-radius': POI_MARKER_RADIUS_PX,
+        'circle-opacity': 0.95,
+        'circle-stroke-color': '#0e1522',
+        'circle-stroke-width': 1.25,
+      },
+    })
+  }
+
+  const source = map.getSource(dynamicPoiSourceId)
+  if (source && 'setData' in source) {
+    source.setData(featureCollection)
+    if (enablePoiDebugLogs) {
+      const count = Array.isArray(featureCollection?.features) ? featureCollection.features.length : 0
+      console.log('[dynamic-poi] map source updated', {
+        sourceId: dynamicPoiSourceId,
+        layerId: dynamicPoiLayerId,
+        featureCount: count,
+      })
+    }
+  }
+}
 
 const toFiniteNumber = (value) => {
   const numberValue = typeof value === 'number' ? value : Number(value)
@@ -181,10 +234,12 @@ function resumeGlobeRotation() {
 
 function App() {
   const { userType, setUserType } = useUserType()
+  const queryClient = useQueryClient()
   const mapRef = useRef(null)
   const mapContainerRef = useRef(null)
   const requestIdRef = useRef(0)
   const lookupAbortControllerRef = useRef(null)
+  const dynamicPoiGeoJsonRef = useRef(createEmptyPoiFeatureCollection())
 
   const [mapInstance, setMapInstance] = useState(null)
   const [inputValue, setInputValue] = useState('')
@@ -199,10 +254,114 @@ function App() {
   const [censusLocationLabel, setCensusLocationLabel] = useState('')
   const [isCensusPanelCollapsed, setIsCensusPanelCollapsed] = useState(false)
   const [checklistStateByType, setChecklistStateByType] = useState(() => createInitialChecklistState())
+  const [dynamicPoiParams, setDynamicPoiParams] = useState(null)
+
+  const checklistItems = useMemo(() => getChecklistItemsForUserType(userType), [userType])
+  const checklistState = useMemo(
+    () => checklistStateByType[userType] ?? {},
+    [checklistStateByType, userType]
+  )
+  const checkedChecklistItemIds = useMemo(
+    () =>
+      Object.entries(checklistState)
+        .filter(([, isChecked]) => Boolean(isChecked))
+        .map(([itemId]) => itemId),
+    [checklistState]
+  )
 
   const censusMutation = useMutation({
     mutationFn: fetchCensusByPoint,
   })
+  const dynamicPoiQuery = useQuery({
+    queryKey: [
+      'pois-dynamic',
+      dynamicPoiParams?.requestId ?? null,
+      dynamicPoiParams?.lat ?? null,
+      dynamicPoiParams?.lon ?? null,
+      dynamicPoiParams?.radiusM ?? dynamicPoiRadiusM,
+      dynamicPoiParams?.selectedLabels?.join(',') ?? '',
+      dynamicPoiParams?.businessType ?? '',
+    ],
+    enabled: Boolean(dynamicPoiParams),
+    queryFn: ({ signal }) => {
+      if (!dynamicPoiParams) {
+        return Promise.resolve({
+          countsByLabel: {},
+          points: [],
+          meta: {},
+        })
+      }
+      return fetchDynamicPois({
+        ...dynamicPoiParams,
+        signal,
+      })
+    },
+  })
+
+  const fetchedDynamicPoiPoints = useMemo(
+    () => (Array.isArray(dynamicPoiQuery.data?.points) ? dynamicPoiQuery.data.points : []),
+    [dynamicPoiQuery.data?.points]
+  )
+  const visibleDynamicPoiPoints = useMemo(
+    () => filterPoiPointsByCheckedLabels(fetchedDynamicPoiPoints, checkedChecklistItemIds),
+    [fetchedDynamicPoiPoints, checkedChecklistItemIds]
+  )
+  const dynamicPoiFeatureCollection = useMemo(
+    () => toPoiFeatureCollection(visibleDynamicPoiPoints),
+    [visibleDynamicPoiPoints]
+  )
+
+  useEffect(() => {
+    if (!enablePoiDebugLogs) {
+      return
+    }
+
+    const summary = {
+      searchParams: dynamicPoiParams
+        ? {
+            lat: dynamicPoiParams.lat,
+            lon: dynamicPoiParams.lon,
+            radiusM: dynamicPoiParams.radiusM,
+            selectedLabels: dynamicPoiParams.selectedLabels,
+            businessType: dynamicPoiParams.businessType ?? null,
+          }
+        : null,
+      query: {
+        status: dynamicPoiQuery.status,
+        isFetching: dynamicPoiQuery.isFetching,
+        isSuccess: dynamicPoiQuery.isSuccess,
+        isError: dynamicPoiQuery.isError,
+      },
+      checklist: {
+        userType,
+        checkedLabels: checkedChecklistItemIds,
+      },
+      points: {
+        fetched: fetchedDynamicPoiPoints.length,
+        visible: visibleDynamicPoiPoints.length,
+        sampleVisible: visibleDynamicPoiPoints.slice(0, 3),
+      },
+      meta: dynamicPoiQuery.data?.meta ?? null,
+      error:
+        dynamicPoiQuery.error instanceof Error
+          ? dynamicPoiQuery.error.message
+          : dynamicPoiQuery.error ?? null,
+    }
+
+    console.log('[dynamic-poi] state', summary)
+  }, [
+    checkedChecklistItemIds,
+    dynamicPoiParams,
+    dynamicPoiQuery.data?.meta,
+    dynamicPoiQuery.error,
+    dynamicPoiQuery.isError,
+    dynamicPoiQuery.isFetching,
+    dynamicPoiQuery.isSuccess,
+    dynamicPoiQuery.status,
+    fetchedDynamicPoiPoints,
+    userType,
+    visibleDynamicPoiPoints,
+  ])
 
   useEffect(() => {
     if (!accessToken) {
@@ -242,6 +401,7 @@ function App() {
         'space-color': 'rgb(1, 2, 5)',
         'star-intensity': 0.45,
       })
+      syncDynamicPoiSource(map, dynamicPoiGeoJsonRef.current)
       resumeGlobeRotation()
     })
 
@@ -266,6 +426,25 @@ function App() {
     },
     []
   )
+
+  useEffect(() => {
+    dynamicPoiGeoJsonRef.current = dynamicPoiFeatureCollection
+    const map = mapRef.current
+    if (!map) {
+      return
+    }
+    try {
+      syncDynamicPoiSource(map, dynamicPoiFeatureCollection)
+    } catch (error) {
+      console.warn('Could not update dynamic POI map markers.', error)
+    }
+  }, [dynamicPoiFeatureCollection])
+
+  useEffect(() => {
+    if (dynamicPoiQuery.error) {
+      console.warn('Dynamic POI request failed.', dynamicPoiQuery.error)
+    }
+  }, [dynamicPoiQuery.error])
 
   const flyToSearchFeature = useCallback((feature, onMoveEnd) => {
     const map = mapRef.current
@@ -330,6 +509,19 @@ function App() {
       }
 
       setHasSearched(true)
+      setChecklistStateByType(createInitialChecklistState())
+      await queryClient.cancelQueries({ queryKey: ['pois-dynamic'] })
+
+      const labelsForUserType = checklistItems.map((item) => item.id)
+      setDynamicPoiParams({
+        requestId,
+        lat: centerPoint.lat,
+        lon: centerPoint.lng,
+        selectedLabels: labelsForUserType,
+        radiusM: dynamicPoiRadiusM,
+        businessType: labelsForUserType.includes('direct_competition') ? 'cafe' : undefined,
+        includeNodes: true,
+      })
 
       lookupAbortControllerRef.current?.abort()
       const controller = new AbortController()
@@ -371,7 +563,7 @@ function App() {
         }
       }
     },
-    [censusMutation, flyToSearchFeature]
+    [censusMutation, checklistItems, flyToSearchFeature, queryClient]
   )
 
   const geocodeAddressToFeature = useCallback(async (query) => {
@@ -510,11 +702,10 @@ function App() {
     }
   }, [submitGoToQuery])
 
-  const isLookupInProgress = censusStatus === 'loading' || censusMutation.isPending
+  const isLookupInProgress =
+    censusStatus === 'loading' || censusMutation.isPending || dynamicPoiQuery.isFetching
   const showAnalysisOverlay = isLookupInProgress && !isZoomTransitioning
   const showCensusPanel = censusStatus === 'success' || censusStatus === 'error'
-  const checklistItems = getChecklistItemsForUserType(userType)
-  const checklistState = checklistStateByType[userType] ?? {}
 
   const handleToggleChecklistItem = useCallback(
     (itemId) => {

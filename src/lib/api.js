@@ -51,6 +51,43 @@ export async function fetchNearbyPois({ lat, lon, radiusM = 800, signal }) {
 }
 
 /**
+ * Fetch dynamic POIs from the preference-driven endpoint.
+ *
+ * @param {{
+ *   lat: number,
+ *   lon: number,
+ *   selectedLabels: string[],
+ *   radiusM?: number,
+ *   businessType?: string,
+ *   includeNodes?: boolean,
+ *   signal?: AbortSignal
+ * }} opts
+ * @returns {Promise<{ countsByLabel: Record<string,number>, points: Array<object>|null, meta: object }>}
+ */
+export async function fetchDynamicPois({
+  lat,
+  lon,
+  selectedLabels,
+  radiusM = 1200,
+  businessType,
+  includeNodes = true,
+  signal,
+}) {
+  const selectedLabelsParam = Array.isArray(selectedLabels)
+    ? selectedLabels.filter(Boolean).join(',')
+    : ''
+  const url = buildApiUrl('/api/pois/dynamic', {
+    lat,
+    lon,
+    radius_m: radiusM,
+    selected_labels: selectedLabelsParam,
+    business_type: businessType,
+    include_nodes: includeNodes,
+  })
+  return fetchJson(url, signal)
+}
+
+/**
  * Fetch the Census tract boundary GeoJSON for a coordinate.
  *
  * @param {{ lat: number, lon: number, signal?: AbortSignal }} opts

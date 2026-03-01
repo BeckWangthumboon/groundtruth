@@ -53,6 +53,24 @@ const resolveFeatureCenter = (feature) => {
   return { lng, lat }
 }
 
+const resolveFeatureBounds = (feature) => {
+  const rawBounds = feature?.properties?.bbox ?? feature?.bbox
+  const bounds =
+    Array.isArray(rawBounds) && rawBounds.length === 4
+      ? rawBounds.map((item) => toFiniteNumber(item))
+      : null
+
+  if (!bounds?.every((value) => value != null)) {
+    return null
+  }
+
+  const [west, south, east, north] = bounds
+  return [
+    [west, south],
+    [east, north],
+  ]
+}
+
 const getFeatureDisplayLabel = (feature) =>
   feature?.properties?.full_address ??
   feature?.properties?.name_preferred ??
@@ -182,6 +200,7 @@ function App() {
   const [inputValue, setInputValue] = useState('')
   const [isGoToPending, setIsGoToPending] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+  const [hasStartedSearch, setHasStartedSearch] = useState(false)
 
   const [censusStatus, setCensusStatus] = useState('idle')
   const [censusData, setCensusData] = useState(null)
@@ -265,6 +284,7 @@ function App() {
     if (!centerPoint) {
       return false
     }
+    const bounds = resolveFeatureBounds(feature)
 
     pauseGlobeRotation()
     map.stop()
@@ -275,15 +295,27 @@ function App() {
       resumeGlobeRotation()
     })
 
-    map.flyTo({
-      center: [centerPoint.lng, centerPoint.lat],
-      zoom: streetLevelZoom,
-      pitch: 50,
-      bearing: -20,
-      duration,
-      essential: true,
-      easing: (t) => 1 - Math.pow(1 - t, 3),
-    })
+    if (bounds) {
+      map.fitBounds(bounds, {
+        padding: { top: 168, right: 168, bottom: 168, left: 168 },
+        maxZoom: streetLevelZoom,
+        pitch: 44,
+        bearing: -14,
+        duration,
+        essential: true,
+        easing: (t) => 1 - Math.pow(1 - t, 3),
+      })
+    } else {
+      map.flyTo({
+        center: [centerPoint.lng, centerPoint.lat],
+        zoom: streetLevelZoom,
+        pitch: 50,
+        bearing: -20,
+        duration,
+        essential: true,
+        easing: (t) => 1 - Math.pow(1 - t, 3),
+      })
+    }
 
     return true
   }, [])
@@ -381,6 +413,7 @@ function App() {
         return false
       }
 
+      setHasStartedSearch(true)
       setIsGoToPending(true)
       try {
         const feature = await geocodeAddressToFeature(trimmedQuery)
@@ -411,6 +444,7 @@ function App() {
         return
       }
 
+      setHasStartedSearch(true)
       const nextInputValue = getFeatureDisplayLabel(feature)
       if (nextInputValue) {
         setInputValue(nextInputValue)
@@ -486,8 +520,15 @@ function App() {
   const isLookupInProgress = censusStatus === 'loading' || censusMutation.isPending
 
   return (
-    <div className={`app-shell${hasSearched ? ' app-shell--searched' : ''}`}>
+    <div
+      className={`app-shell${hasSearched ? ' app-shell--searched' : ''}${
+        hasStartedSearch ? ' app-shell--hero-cleared' : ''
+      }`}
+    >
       <div id="map-container" ref={mapContainerRef} />
+      <div className="hero-wordmark-layer" aria-hidden="true">
+        <p className="hero-wordmark rubik-mono-one-regular">Ground Truth</p>
+      </div>
 
       <main className="ui-layer">
         <AnalysisLoadingOverlay visible={isLookupInProgress} />

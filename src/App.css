@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Rubik+Mono+One&display=swap');
+
 html,
 body,
 #root {
@@ -11,6 +13,12 @@ body {
   background: #03060d;
   color: #eef2f8;
   overflow: hidden;
+}
+
+.rubik-mono-one-regular {
+  font-family: 'Rubik Mono One', monospace;
+  font-weight: 400;
+  font-style: normal;
 }
 
 .app-shell {
@@ -57,6 +65,44 @@ body {
   z-index: 0;
   filter: grayscale(1) saturate(0) contrast(1.08) brightness(0.62);
   transition: filter 320ms ease;
+}
+
+.hero-wordmark-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.hero-wordmark {
+  margin: 0;
+  max-width: 94vw;
+  text-transform: uppercase;
+  text-align: center;
+  letter-spacing: clamp(0.18em, 1.2vw, 0.52em);
+  font-size: clamp(2.6rem, 11vw, 8.8rem);
+  line-height: 0.9;
+  color: rgba(216, 229, 255, 0.28);
+  text-shadow:
+    0 0 26px rgba(178, 202, 255, 0.35),
+    0 0 62px rgba(154, 185, 255, 0.2);
+  filter: blur(22px);
+  opacity: 0;
+  transform: translateY(22px) scale(1.03);
+  animation: hero-wordmark-reveal 1600ms cubic-bezier(0.16, 1, 0.3, 1) 320ms forwards;
+}
+
+.app-shell--hero-cleared .hero-wordmark {
+  animation: none;
+  opacity: 0;
+  filter: blur(36px);
+  transform: translateY(-8px) scale(1.09);
+  transition:
+    opacity 780ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 900ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .app-shell--searched::after {
@@ -260,6 +306,20 @@ body {
 @keyframes census-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes hero-wordmark-reveal {
+  0% {
+    opacity: 0;
+    filter: blur(30px);
+    transform: translateY(22px) scale(1.08);
+  }
+
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
   }
 }
 

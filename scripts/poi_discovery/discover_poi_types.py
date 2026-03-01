@@ -2,7 +2,7 @@
 """Discover OSM POI tag values around a point via Overpass.
 
 This script runs a broad Overpass query and reports distinct values + counts for
-these POI-related keys:
+these POI-related keys by default:
   - amenity
   - shop
   - leisure
@@ -10,9 +10,12 @@ these POI-related keys:
   - office
   - craft
 
+Optionally, --all-tags enables discovery across all tag keys/values.
+
 Usage:
   python3 scripts/poi_discovery/discover_poi_types.py --lat 43.074 --lon -89.384
   python3 scripts/poi_discovery/discover_poi_types.py --lat 43.074 --lon -89.384 --radius-m 5000 --top 50
+  python3 scripts/poi_discovery/discover_poi_types.py --lat 43.074 --lon -89.384 --all-tags --top 20
 """
 
 from __future__ import annotations
@@ -26,7 +29,7 @@ from typing import Any
 
 import httpx
 
-TAG_KEYS = ("amenity", "shop", "leisure", "tourism", "office", "craft")
+DEFAULT_TAG_KEYS = ("amenity", "shop", "leisure", "tourism", "office", "craft")
 MAX_DISCOVERY_RADIUS_M = 5000
 DEFAULT_DISCOVERY_RADIUS_M = 1000
 
@@ -52,12 +55,24 @@ def _effective_radius(radius_m: int) -> tuple[int, bool]:
     return radius_m, False
 
 
-def _build_overpass_query(lat: float, lon: float, radius_m: int) -> str:
+def _build_overpass_query(
+    lat: float,
+    lon: float,
+    radius_m: int,
+    tag_keys: tuple[str, ...],
+    *,
+    all_tags: bool,
+) -> str:
     lines = ["[out:json][timeout:25];", "("]
 
-    for key in TAG_KEYS:
+    if all_tags:
         for osm_type in ("node", "way", "relation"):
-            lines.append(f'  {osm_type}["{key}"](around:{radius_m},{lat},{lon});')
+            # [~"."~"."] matches any non-empty key and value pair.
+            lines.append(f'  {osm_type}[~"."~"."](around:{radius_m},{lat},{lon});')
+    else:
+        for key in tag_keys:
+            for osm_type in ("node", "way", "relation"):
+                lines.append(f'  {osm_type}["{key}"](around:{radius_m},{lat},{lon});')
 
     lines.extend([");", "out center tags;"])
     return "\n".join(lines)
@@ -86,41 +101,63 @@ async def _fetch_overpass(query: str) -> tuple[dict[str, Any], str]:
     )
 
 
-def _build_tag_summary(elements: list[dict[str, Any]], top: int) -> dict[str, Any]:
-    counters = {key: Counter() for key in TAG_KEYS}
+def _build_tag_summary(
+    elements: list[dict[str, Any]],
+    top: int,
+    tag_keys: tuple[str, ...] | None,
+) -> dict[str, Any]:
+    counters: dict[str, Counter[str]] = {}
+    keys_filter = set(tag_keys) if tag_keys is not None else None
 
     for element in elements:
         tags = element.get("tags")
         if not isinstance(tags, dict):
             continue
 
-        for key in TAG_KEYS:
-            value = tags.get(key)
+        for key, value in tags.items():
+            if keys_filter is not None and key not in keys_filter:
+                continue
             if isinstance(value, str):
                 normalized = value.strip()
                 if normalized:
-                    counters[key][normalized] += 1
+                    counters.setdefault(key, Counter())[normalized] += 1
 
     summary: dict[str, Any] = {}
-    for key in TAG_KEYS:
-        items = sorted(counters[key].items(), key=lambda item: (-item[1], item[0]))
+    keys_to_render = sorted(counters.keys()) if tag_keys is None else tag_keys
+    for key in keys_to_render:
+        key_counter = counters.get(key, Counter())
+        items = sorted(key_counter.items(), key=lambda item: (-item[1], item[0]))
         if top > 0:
             items = items[:top]
 
         summary[key] = {
-            "distinct_values": len(counters[key]),
-            "tagged_elements": int(sum(counters[key].values())),
+            "distinct_values": len(key_counter),
+            "tagged_elements": int(sum(key_counter.values())),
             "values": [{"value": value, "count": int(count)} for value, count in items],
         }
 
     return summary
 
 
-async def discover_poi_types(lat: float, lon: float, radius_m: int, top: int) -> dict[str, Any]:
+async def discover_poi_types(
+    lat: float,
+    lon: float,
+    radius_m: int,
+    top: int,
+    *,
+    all_tags: bool,
+) -> dict[str, Any]:
     _validate_coordinates(lat, lon)
     effective_radius, radius_was_clamped = _effective_radius(radius_m)
+    active_keys = None if all_tags else DEFAULT_TAG_KEYS
 
-    query = _build_overpass_query(lat, lon, effective_radius)
+    query = _build_overpass_query(
+        lat,
+        lon,
+        effective_radius,
+        tag_keys=DEFAULT_TAG_KEYS,
+        all_tags=all_tags,
+    )
     payload, endpoint = await _fetch_overpass(query)
     elements = payload.get("elements", [])
     if not isinstance(elements, list):
@@ -135,11 +172,13 @@ async def discover_poi_types(lat: float, lon: float, radius_m: int, top: int) ->
             "max_discovery_radius_m": MAX_DISCOVERY_RADIUS_M,
             "radius_was_clamped": radius_was_clamped,
             "top_limit": top,
+            "discovery_mode": "all_tags" if all_tags else "selected_keys",
+            "query_tag_keys": sorted(DEFAULT_TAG_KEYS) if not all_tags else "ALL",
             "total_elements": len(elements),
             "overpass_endpoint": endpoint,
             "ts": int(time.time()),
         },
-        "tag_summary": _build_tag_summary(elements, top=top),
+        "tag_summary": _build_tag_summary(elements, top=top, tag_keys=active_keys),
     }
 
 
@@ -176,6 +215,14 @@ def _parse_args() -> argparse.Namespace:
         default="",
         help="Optional path to write JSON output. If omitted, prints to stdout.",
     )
+    parser.add_argument(
+        "--all-tags",
+        action="store_true",
+        help=(
+            "Discover all tag keys/values (not limited to default POI keys). "
+            "This can return much larger and noisier results."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -189,6 +236,7 @@ async def _async_main() -> int:
         lon=args.lon,
         radius_m=args.radius_m,
         top=args.top,
+        all_tags=args.all_tags,
     )
 
     serialized = json.dumps(report, indent=2, sort_keys=True)

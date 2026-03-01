@@ -183,11 +183,11 @@ body {
 .census-panel-anchor--visible {
   opacity: 1;
   transform: translateX(0);
-  animation: census-panel-enter 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: census-panel-enter 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .census-panel-anchor--collapsed {
-  transform: translateX(calc(-100% + 46px));
+  transform: translateX(calc(-100% + 56px));
 }
 
 .census-panel-shell {
@@ -197,13 +197,14 @@ body {
 }
 
 .census-panel-shell--hidden {
-  opacity: 0.8;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .census-panel-toggle {
   position: absolute;
   top: 52px;
-  right: -18px;
+  right: -28px;
   width: 36px;
   height: 36px;
   border-radius: 999px;
@@ -233,7 +234,7 @@ body {
   box-shadow: 0 22px 56px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(14px);
   color: #eef2ff;
-  max-height: min(70vh, 760px);
+  max-height: calc(100vh - 120px);
   overflow: auto;
   padding: 18px 16px 16px;
   scrollbar-width: thin;
@@ -661,7 +662,7 @@ body {
   }
 
   .census-panel-anchor--collapsed {
-    transform: translateX(calc(-100% + 44px));
+    transform: translateX(calc(-100% + 54px));
   }
 
   .census-panel-shell {
@@ -670,13 +671,13 @@ body {
 
   .census-panel-toggle {
     top: 46px;
-    right: -16px;
+    right: -26px;
     width: 34px;
     height: 34px;
   }
 
   .census-panel {
-    max-height: 52vh;
+    max-height: calc(100vh - 120px);
   }
 
   .hero-stats {

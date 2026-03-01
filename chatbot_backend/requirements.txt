@@ -1,0 +1,11 @@
+# Run from project root so keywords_llm/ is at root:
+#   set GOOGLE_GENERATIVE_AI_API_KEY=... & set GOOGLE_CLOUD_TTS_API_KEY=... & python -m uvicorn updatedBackend.app:app --reload --port 8000
+# Or from updatedBackend directory:
+#   set GOOGLE_GENERATIVE_AI_API_KEY=... & set GOOGLE_CLOUD_TTS_API_KEY=... & python -m uvicorn app:app --reload --port 8000
+
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic>=2.0.0
+google-generativeai>=0.8.0
+requests>=2.32.0
+httpx>=0.27.0

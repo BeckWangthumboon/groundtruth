@@ -1,15 +1,27 @@
 # API keys: load from .env at project root when backend starts.
-# Fallbacks keep existing behavior if env is unset.
+# Uses same .env loading as googletts.py demo so TTS key is found reliably.
 
 import os
 from pathlib import Path
 
-try:
-    from dotenv import load_dotenv
-    _project_root = Path(__file__).resolve().parents[1]
-    load_dotenv(_project_root / ".env")
-except (ImportError, OSError):
-    pass
+_project_root = Path(__file__).resolve().parents[1]
+
+
+def _load_dotenv() -> None:
+    """Load .env from project root or cwd (matches googletts.py behavior)."""
+    for path in (_project_root / ".env", Path.cwd() / ".env"):
+        if path.is_file():
+            with open(path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, _, v = line.partition("=")
+                        v = v.strip().strip('"').strip("'")
+                        os.environ.setdefault(k.strip(), v)
+            break
+
+
+_load_dotenv()
 
 GOOGLE_GENERATIVE_AI_API_KEY = (os.getenv(
     "GOOGLE_GENERATIVE_AI_API_KEY",

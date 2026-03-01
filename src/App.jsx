@@ -6,10 +6,12 @@ import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 
 import { AnalysisLoadingOverlay } from './components/AnalysisLoadingOverlay'
 import { CensusDataPanel } from './components/CensusDataPanel'
-import { fetchCensusByPoint } from './lib/api'
+import { fetchCensusByPoint, fetchPoiReportCard } from './lib/api'
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon'
 import { fetchIsochrone, fetchTilequeryPois } from './lib/mapboxApi'
 import { MapOverlayControls } from './components/MapOverlayControls'
+import { PoiReportCardPanel } from './components/PoiReportCardPanel'
+import { buildPoiReportCardRequest } from './lib/poiReportCard'
 
 import 'mapbox-gl/dist/mapbox-gl.css'
 import './App.css'
@@ -175,6 +177,31 @@ const getPoiGroupLabel = (feature) => {
   return toSentenceLabel(tokens[0], 'Nearby Place')
 }
 
+const computeIsochroneZoneCounts = (isochroneFeatureCollection, poiFeatureCollection) => {
+  const counts = { 5: 0, 10: 0, 15: 0 }
+  if (!isochroneFeatureCollection?.features?.length || !poiFeatureCollection?.features?.length) {
+    return counts
+  }
+
+  const sortedContours = [...ISOCHRONE_CONTOURS].sort((a, b) => a.contour - b.contour)
+
+  for (const poi of poiFeatureCollection.features) {
+    const coords = poi.geometry?.coordinates
+    if (!coords) continue
+    const point = [coords[0], coords[1]]
+
+    for (const { contour } of sortedContours) {
+      const polygon = isochroneFeatureCollection.features.find((feature) => feature.properties?.contour === contour)
+      if (polygon && booleanPointInPolygon(point, polygon)) {
+        counts[contour] += 1
+        break
+      }
+    }
+  }
+
+  return counts
+}
+
 const searchTheme = {
   variables: {
     colorText: 'rgba(232, 239, 252, 0.94)',
@@ -308,7 +335,7 @@ function App() {
   const [isCensusPanelCollapsed, setIsCensusPanelCollapsed] = useState(false)
 
   const [isochroneData, setIsochroneData] = useState(null)
-  const [isochroneProfile, setIsochroneProfile] = useState('walking')
+  const [isochroneProfile, setIsochroneProfile] = useState(/** @type {'walking' | 'driving'} */ ('walking'))
   const [showIsochrone, setShowIsochrone] = useState(true)
   const [isochroneLoading, setIsochroneLoading] = useState(false)
   const [tilequeryData, setTilequeryData] = useState(null)
@@ -318,6 +345,9 @@ function App() {
   const overlayAbortRef = useRef(null)
   const [hoveredPoiGroupKey, setHoveredPoiGroupKey] = useState(null)
   const [selectedPoiCategories, setSelectedPoiCategories] = useState(null) // null = show all
+  const [poiReportCard, setPoiReportCard] = useState(null)
+  const [poiReportStatus, setPoiReportStatus] = useState('idle')
+  const [poiReportErrorMessage, setPoiReportErrorMessage] = useState('')
 
   const normalizedTilequeryData = useMemo(() => {
     const features = Array.isArray(tilequeryData?.features) ? tilequeryData.features : []
@@ -380,26 +410,13 @@ function App() {
     }
   }, [normalizedTilequeryData, selectedPoiCategories])
 
+  const isochroneZoneCountsAll = useMemo(
+    () => computeIsochroneZoneCounts(isochroneData, normalizedTilequeryData),
+    [isochroneData, normalizedTilequeryData]
+  )
+
   const isochroneZoneCounts = useMemo(() => {
-    const counts = { 5: 0, 10: 0, 15: 0 }
-    if (!isochroneData?.features?.length || !filteredTilequeryData.features.length) return counts
-
-    const sortedContours = [...ISOCHRONE_CONTOURS].sort((a, b) => a.contour - b.contour)
-
-    for (const poi of filteredTilequeryData.features) {
-      const coords = poi.geometry?.coordinates
-      if (!coords) continue
-      const point = [coords[0], coords[1]]
-
-      for (const { contour } of sortedContours) {
-        const polygon = isochroneData.features.find(f => f.properties?.contour === contour)
-        if (polygon && booleanPointInPolygon(point, polygon)) {
-          counts[contour]++
-          break
-        }
-      }
-    }
-    return counts
+    return computeIsochroneZoneCounts(isochroneData, filteredTilequeryData)
   }, [isochroneData, filteredTilequeryData])
 
   const applyPoiGroupHighlightPaint = useCallback((map, groupKey) => {
@@ -483,6 +500,10 @@ function App() {
 
   const censusMutation = useMutation({
     mutationFn: fetchCensusByPoint,
+  })
+
+  const poiReportMutation = useMutation({
+    mutationFn: fetchPoiReportCard,
   })
 
   useEffect(() => {
@@ -692,8 +713,11 @@ function App() {
     lastSearchCoordsRef.current = { lng, lat }
     setIsochroneLoading(true)
     setPoisLoading(true)
+    setPoiReportCard(null)
+    setPoiReportStatus('idle')
+    setPoiReportErrorMessage('')
 
-    const poiRadius = profile === 'driving' ? 5000 : 1500
+    const poiRadius = profile === 'driving' ? 2500 : 1500
 
     const [isoResult, poiResult] = await Promise.allSettled([
       fetchIsochrone({ lon: lng, lat, profile, signal }),
@@ -718,6 +742,7 @@ function App() {
   }, [])
 
   const handleIsochroneProfileChange = useCallback(
+    /** @param {'walking' | 'driving'} newProfile */
     async (newProfile) => {
       setIsochroneProfile(newProfile)
       const coords = lastSearchCoordsRef.current
@@ -731,6 +756,50 @@ function App() {
     },
     [fetchMapOverlayData]
   )
+
+  const handleGeneratePoiReportCard = useCallback(async () => {
+    if (nearbyPlaceGroups.length === 0 || poisLoading) {
+      return
+    }
+
+    setPoiReportStatus('loading')
+    setPoiReportErrorMessage('')
+
+    const requestPayload = buildPoiReportCardRequest({
+      locationLabel: censusLocationLabel || inputValue || 'Selected area',
+      isochroneProfile,
+      totalPlaces: totalNearbyPlaces,
+      groups: nearbyPlaceGroups,
+      reachability: isochroneZoneCountsAll,
+    })
+
+    try {
+      const response = await poiReportMutation.mutateAsync({
+        locationLabel: requestPayload.location_label,
+        isochroneProfile: requestPayload.isochrone_profile,
+        totalPlaces: requestPayload.total_places,
+        groups: requestPayload.groups,
+        reachability: requestPayload.reachability,
+      })
+      setPoiReportCard(response)
+      setPoiReportStatus('success')
+      setPoiReportErrorMessage('')
+    } catch (error) {
+      setPoiReportStatus('error')
+      setPoiReportErrorMessage(
+        error instanceof Error ? error.message : 'Failed to generate POI report card.'
+      )
+    }
+  }, [
+    nearbyPlaceGroups,
+    poisLoading,
+    censusLocationLabel,
+    inputValue,
+    isochroneProfile,
+    totalNearbyPlaces,
+    isochroneZoneCountsAll,
+    poiReportMutation,
+  ])
 
   const flyToSearchFeature = useCallback((feature, onMoveEnd) => {
     const map = mapRef.current
@@ -1032,6 +1101,8 @@ function App() {
   const isLookupInProgress = censusStatus === 'loading' || censusMutation.isPending
   const showAnalysisOverlay = isLookupInProgress && !isZoomTransitioning
   const showCensusPanel = censusStatus === 'success' || censusStatus === 'error'
+  const isPoiReportLoading = poiReportStatus === 'loading' || poiReportMutation.isPending
+  const canGeneratePoiReport = nearbyPlaceGroups.length > 0 && !poisLoading && !isPoiReportLoading
 
   useEffect(() => {
     if (!showCensusPanel) {
@@ -1049,10 +1120,7 @@ function App() {
       <div className="hero-wordmark-layer" aria-hidden="true">
         <div className="hero-side-placeholders">
           <p className="hero-side-placeholder hero-side-placeholder--left rubik-scribble-regular">
-            placeholder
-          </p>
-          <p className="hero-side-placeholder hero-side-placeholder--right rubik-scribble-regular">
-            placeholder
+            Ground Truth maps demographics and nearby places for planners, analysts, and site teams.
           </p>
         </div>
         <p className="hero-wordmark rubik-mono-one-regular">
@@ -1174,6 +1242,15 @@ function App() {
                 </p>
               )}
             </aside>
+
+            <PoiReportCardPanel
+              status={poiReportStatus}
+              report={poiReportCard}
+              errorMessage={poiReportErrorMessage}
+              onGenerate={handleGeneratePoiReportCard}
+              disabled={!canGeneratePoiReport}
+              hasGroups={nearbyPlaceGroups.length > 0}
+            />
 
             <MapOverlayControls
               showIsochrone={showIsochrone}

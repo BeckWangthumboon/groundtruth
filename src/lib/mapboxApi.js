@@ -93,8 +93,8 @@ export async function fetchTilequeryPois({
 }) {
   // Fixed per-query radius that gives good density (each circle returns
   // most POIs within it rather than sparse-sampling a huge area).
-  const CELL_RADIUS = 1000
-  const spacing = CELL_RADIUS * 1.4
+  const CELL_RADIUS = 800
+  const spacing = CELL_RADIUS * 1.0
 
   // Number of rings around center: 1 → 3×3 (9 pts), 2 → 5×5 (25 pts)
   const rings = Math.max(1, Math.min(Math.ceil(radius / spacing / 2), 2))

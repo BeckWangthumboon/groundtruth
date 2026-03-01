@@ -21,6 +21,13 @@ from .census_profile_service import (
     NoTractFoundError,
     lookup_census_profile_by_point,
 )
+from .report_card_service import (
+    MissingAPIKeyError,
+    ReportCardProviderError,
+    ReportCardTimeoutError,
+    generate_poi_report_card,
+)
+from .schemas import PoiReportCardRequest, PoiReportCardResponse
 
 # Make scripts_sumedh importable from the project root
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -87,6 +94,18 @@ async def pois_nearby(
         return await get_overpass_pois(lat, lon, radius_m)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Overpass error: {exc}") from exc
+
+
+@app.post("/api/pois/report-card", response_model=PoiReportCardResponse)
+async def pois_report_card(payload: PoiReportCardRequest) -> PoiReportCardResponse:
+    try:
+        return await generate_poi_report_card(payload)
+    except MissingAPIKeyError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ReportCardTimeoutError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except ReportCardProviderError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @app.get("/api/census/tract-geo")

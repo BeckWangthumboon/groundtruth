@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Volume2, VolumeX, ChevronRight, ChevronDown } from 'lucide-react'
 import { postChat, postTts } from '../lib/api'
 import { buildLocationContextForChat } from '../lib/locationContextForChat'
+import { DEFAULT_POI_MARKER_COLOR, POI_MARKER_COLOR_BY_TYPE } from '../lib/poiDynamicMap'
 
 /**
  * Build a data URL for TTS playback from base64 and format (e.g. "wav").
@@ -215,10 +216,15 @@ export function AssistantPanel({
             <ul className="persona-checklist" aria-label="POI checklist">
               {checklistItems.map((item) => {
                 const isChecked = Boolean(checklistState?.[item.id])
+                const markerColor = POI_MARKER_COLOR_BY_TYPE[item.id] ?? DEFAULT_POI_MARKER_COLOR
+                const checklistItemStyle = isChecked
+                  ? { borderColor: markerColor, background: 'rgba(14, 24, 40, 0.7)' }
+                  : undefined
                 return (
                   <li
                     key={item.id}
                     className={`persona-checklist__item${isChecked ? ' is-checked' : ''}`}
+                    style={checklistItemStyle}
                   >
                     <label className="persona-checklist__label">
                       <input
@@ -226,6 +232,7 @@ export function AssistantPanel({
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => onToggleChecklistItem?.(item.id)}
+                        style={{ accentColor: markerColor }}
                       />
                       <span className="persona-checklist__text">{item.label}</span>
                     </label>

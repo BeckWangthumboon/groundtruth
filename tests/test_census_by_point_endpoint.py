@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 TRACT_GEOID = "14000US55025001704"
 PLACE_GEOID = "16000US5548000"
+ZCTA_GEOID = "86000US53711"
 COUNTY_GEOID = "05000US55025"
 STATE_GEOID = "04000US55"
 NATION_GEOID = "01000US"
@@ -116,10 +117,19 @@ def _tables_payload(geoids: list[str]) -> dict:
             "B21001": {"estimate": {"B21001001": 6800, "B21001002": 240}},
         }
 
+    geography_names = {
+        TRACT_GEOID: "Census Tract 17.04, Dane, WI",
+        PLACE_GEOID: "Madison city, WI",
+        ZCTA_GEOID: "ZCTA 53711",
+        COUNTY_GEOID: "Dane County, WI",
+        STATE_GEOID: "Wisconsin",
+        NATION_GEOID: "United States",
+    }
+
     return {
         "release": {"id": "acs2024_5yr", "name": "ACS 2024 5-year", "years": "2020-2024"},
         "tables": tables,
-        "geography": {geoid: {"name": geoid} for geoid in geoids},
+        "geography": {geoid: {"name": geography_names.get(geoid, geoid)} for geoid in geoids},
         "data": data,
     }
 
@@ -135,7 +145,7 @@ def test_by_point_returns_profile_payload(monkeypatch):
         if stage == "tract_full":
             return _tables_payload([TRACT_GEOID])
         if stage == "comparisons":
-            return _tables_payload([TRACT_GEOID, PLACE_GEOID, COUNTY_GEOID, STATE_GEOID, NATION_GEOID])
+            return _tables_payload([TRACT_GEOID, ZCTA_GEOID, COUNTY_GEOID, PLACE_GEOID, STATE_GEOID, NATION_GEOID])
         raise AssertionError(f"Unexpected stage: {stage}")
 
     monkeypatch.setattr(cps, "request_json", fake_request_json)
@@ -153,6 +163,20 @@ def test_by_point_returns_profile_payload(monkeypatch):
     assert "sections" in payload["derived"]
     assert "comparisons" in payload["derived"]
     assert payload["derived"]["profile_summary"]["population"] is not None
+
+    selector_options = payload["derived"]["selector_options"]
+    assert [option["kind"] for option in selector_options] == ["tract", "place", "zcta", "county"]
+    assert all(option["available"] for option in selector_options)
+    assert [option["label"] for option in selector_options] == ["Census Tract", "Place", "ZIP Code", "County"]
+
+    profiles = payload["derived"]["geography_profiles_by_geoid"]
+    assert set(profiles.keys()) == {TRACT_GEOID, PLACE_GEOID, ZCTA_GEOID, COUNTY_GEOID}
+    assert profiles[TRACT_GEOID]["summary"]["area_sq_miles"] is not None
+    assert profiles[COUNTY_GEOID]["summary"]["area_sq_miles"] is None
+    assert profiles[PLACE_GEOID]["summary"]["density_per_sq_mile"] is None
+    assert payload["derived"]["sections"] == profiles[TRACT_GEOID]["sections"]
+    assert payload["derived"]["profile_summary"]["tract_geoid"] == TRACT_GEOID
+
     economics = next((section for section in payload["derived"]["sections"] if section["id"] == "economics"), None)
     assert economics is not None
     median_income_metric = next((metric for metric in economics["metrics"] if metric["id"] == "median_household_income"), None)
@@ -160,6 +184,27 @@ def test_by_point_returns_profile_payload(monkeypatch):
     assert isinstance(median_income_metric["high_moe"], bool)
     assert median_income_metric["comparisons"]
     assert "figure in" in median_income_metric["comparisons"][0]["line"]
+
+    place_economics = next(
+        (
+            section
+            for section in profiles[PLACE_GEOID]["sections"]
+            if section["id"] == "economics"
+        ),
+        None,
+    )
+    assert place_economics is not None
+    place_income_metric = next(
+        (
+            metric
+            for metric in place_economics["metrics"]
+            if metric["id"] == "median_household_income"
+        ),
+        None,
+    )
+    assert place_income_metric is not None
+    assert place_income_metric["comparisons"]
+    assert all(line["geoid"] != PLACE_GEOID for line in place_income_metric["comparisons"])
 
 
 def test_by_point_include_parents_false(monkeypatch):
@@ -188,6 +233,7 @@ def test_by_point_include_parents_false(monkeypatch):
     assert resp.status_code == 200
     payload = resp.json()
     assert payload["parents"]["comparison_geoids"] == [TRACT_GEOID]
+    assert [option["kind"] for option in payload["derived"]["selector_options"]] == ["tract"]
 
 
 def test_by_point_rejects_missing_params():

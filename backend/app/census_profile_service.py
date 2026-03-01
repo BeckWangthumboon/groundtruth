@@ -65,6 +65,13 @@ B15003_HIGH_SCHOOL_PLUS = [f"B15003{i:03d}" for i in range(12, 21)]
 B15003_BACHELORS_PLUS = [f"B15003{i:03d}" for i in range(15, 21)]
 
 METRIC_RELATIONS_DEFAULT = ("place", "county", "state", "nation")
+SELECTOR_KIND_ORDER = ("tract", "place", "zcta", "county")
+SELECTOR_LABELS = {
+    "tract": "Census Tract",
+    "place": "Place",
+    "zcta": "ZIP Code",
+    "county": "County",
+}
 
 RequestJsonFn = Callable[
     [httpx.Client, str],
@@ -559,13 +566,14 @@ def _ratio_phrase(ratio: float) -> str:
 def _comparison_lines_for_metric(
     metric: dict[str, Any],
     *,
-    tract_value: float | int | None,
+    base_geoid: str,
+    base_value: float | int | None,
     comparison_values: dict[str, float | int | None],
     selected_parents: list[dict[str, Any]],
     geography_lookup: dict[str, str | None],
     allowed_relations: tuple[str, ...] = METRIC_RELATIONS_DEFAULT,
 ) -> list[dict[str, Any]]:
-    if tract_value is None:
+    if base_value is None:
         return []
 
     relation_seen: set[str] = set()
@@ -573,6 +581,8 @@ def _comparison_lines_for_metric(
     for parent in selected_parents:
         relation = str(parent.get("relation") or "").lower().strip()
         geoid = str(parent.get("geoid") or "")
+        if geoid == base_geoid:
+            continue
         if relation not in allowed_relations or relation in relation_seen:
             continue
         relation_seen.add(relation)
@@ -581,7 +591,7 @@ def _comparison_lines_for_metric(
         if compare_value in (None, 0):
             continue
 
-        ratio = float(tract_value) / float(compare_value)
+        ratio = float(base_value) / float(compare_value)
         phrase = _ratio_phrase(ratio)
         place_name = geography_lookup.get(geoid) or geoid
 
@@ -1331,6 +1341,127 @@ def _build_social_section(payload: dict[str, Any], geoid: str) -> tuple[dict[str
     return section, metrics
 
 
+def _build_sections_for_geoid(
+    payload: dict[str, Any], geoid: str
+) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
+    sections: list[dict[str, Any]] = []
+    metric_map: dict[str, dict[str, Any]] = {}
+
+    metric_map["population"] = _metric_block(
+        payload,
+        geoid,
+        metric_id="population",
+        label="Population",
+        table_id="B01003",
+        column_id="B01003001",
+        format_hint="number",
+    )
+
+    demographics_section, demographics_metrics = _build_demographics_section(payload, geoid)
+    economics_section, economics_metrics = _build_economics_section(payload, geoid)
+    families_section, families_metrics = _build_families_section(payload, geoid)
+    housing_section, housing_metrics = _build_housing_section(payload, geoid)
+    social_section, social_metrics = _build_social_section(payload, geoid)
+
+    sections.extend(
+        [
+            demographics_section,
+            economics_section,
+            families_section,
+            housing_section,
+            social_section,
+        ]
+    )
+
+    for source in [demographics_metrics, economics_metrics, families_metrics, housing_metrics, social_metrics]:
+        metric_map.update(source)
+
+    return sections, metric_map
+
+
+def _get_geography_meta(*, geoid: str, payloads: list[dict[str, Any]]) -> dict[str, Any]:
+    for payload in payloads:
+        geography = payload.get("geography", {})
+        if not isinstance(geography, dict):
+            continue
+        meta = geography.get(geoid)
+        if isinstance(meta, dict):
+            return meta
+    return {}
+
+
+def _extract_area_sq_m_from_geography_meta(meta: dict[str, Any]) -> float | None:
+    for key in (
+        "AREALAND",
+        "ALAND",
+        "aland",
+        "area_sq_m",
+        "land_area_sq_m",
+        "aland_sq_m",
+    ):
+        value = _safe_float(meta.get(key))
+        if value and value > 0:
+            return value
+    return None
+
+
+def _tract_area_density(
+    *, tract_record: dict[str, Any], population: float | int | None
+) -> tuple[float | None, float | None, float | None]:
+    area_sq_m = _safe_float(tract_record.get("AREALAND") or tract_record.get("ALAND") or tract_record.get("aland"))
+    area_sq_mi: float | None = None
+    density: float | None = None
+    if area_sq_m and area_sq_m > 0:
+        area_sq_mi = area_sq_m / 2_589_988.110336
+        if isinstance(population, (int, float)) and area_sq_mi > 0:
+            density = float(population) / area_sq_mi
+    return area_sq_m, area_sq_mi, density
+
+
+def _area_density_for_geography_meta(
+    *, meta: dict[str, Any], population: float | int | None
+) -> tuple[float | None, float | None]:
+    area_sq_m = _extract_area_sq_m_from_geography_meta(meta)
+    if area_sq_m is None:
+        return None, None
+    area_sq_miles = area_sq_m / 2_589_988.110336
+    if not isinstance(population, (int, float)) or area_sq_miles <= 0:
+        return area_sq_miles, None
+    return area_sq_miles, float(population) / area_sq_miles
+
+
+def _build_geography_profile_summary(
+    *,
+    geoid: str,
+    geography_name: str | None,
+    metric_map: dict[str, dict[str, Any]],
+    tract_geoid: str,
+    tract_record: dict[str, Any],
+    geography_meta: dict[str, Any],
+) -> dict[str, Any]:
+    population = metric_map.get("population", {}).get("estimate")
+    area_sq_miles: float | None = None
+    density: float | None = None
+    if geoid == tract_geoid:
+        _, area_sq_miles, density = _tract_area_density(
+            tract_record=tract_record,
+            population=population,
+        )
+    else:
+        area_sq_miles, density = _area_density_for_geography_meta(
+            meta=geography_meta,
+            population=population,
+        )
+
+    return {
+        "geoid": geoid,
+        "name": geography_name,
+        "population": population,
+        "area_sq_miles": area_sq_miles,
+        "density_per_sq_mile": density,
+    }
+
+
 def compute_highlights_for_geoid(
     payload: dict[str, Any], geoid: str, name: str | None
 ) -> dict[str, Any]:
@@ -1433,14 +1564,11 @@ def _build_profile_summary(
     geography_lookup: dict[str, str | None],
     tract_metrics: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
-    area_sq_m = _safe_float(tract_record.get("AREALAND") or tract_record.get("ALAND") or tract_record.get("aland"))
-    area_sq_mi: float | None = None
-    density: float | None = None
     population_value = tract_metrics.get("population", {}).get("estimate") if tract_metrics.get("population") else None
-    if area_sq_m and area_sq_m > 0:
-        area_sq_mi = area_sq_m / 2_589_988.110336
-        if isinstance(population_value, (int, float)) and area_sq_mi > 0:
-            density = float(population_value) / area_sq_mi
+    area_sq_m, area_sq_mi, density = _tract_area_density(
+        tract_record=tract_record,
+        population=population_value,
+    )
 
     hierarchy_geoids: list[str] = [tract_geoid]
     for parent in selected_parents:
@@ -1467,6 +1595,19 @@ def _build_profile_summary(
     }
 
 
+def _first_selected_parent_geoid(
+    selected_parents: list[dict[str, Any]], *, relation: str
+) -> str | None:
+    for parent in selected_parents:
+        parent_relation = str(parent.get("relation") or "").lower().strip()
+        if parent_relation != relation:
+            continue
+        geoid = str(parent.get("geoid") or "")
+        if geoid:
+            return geoid
+    return None
+
+
 def build_derived(
     tract_full_payload: dict[str, Any],
     comparisons_payload: dict[str, Any],
@@ -1474,12 +1615,29 @@ def build_derived(
     tract_geoid: str,
     selected_parents: list[dict[str, Any]],
     tract_record: dict[str, Any],
-) -> tuple[dict[str, Any], dict[str, dict[str, Any]], list[dict[str, Any]], dict[str, list[dict[str, Any]]], dict[str, Any]]:
+    zcta_geoid: str | None,
+    county_geoid: str | None,
+) -> tuple[
+    dict[str, Any],
+    dict[str, dict[str, Any]],
+    list[dict[str, Any]],
+    dict[str, list[dict[str, Any]]],
+    dict[str, Any],
+    dict[str, dict[str, Any]],
+    list[dict[str, Any]],
+]:
     geography_lookup: dict[str, str | None] = {}
     for source in (tract_full_payload, comparisons_payload):
         for geoid, meta in source.get("geography", {}).items():
             if isinstance(meta, dict):
                 geography_lookup[geoid] = meta.get("name")
+    for parent in selected_parents:
+        geoid = str(parent.get("geoid") or "")
+        if not geoid:
+            continue
+        display_name = parent.get("display_name")
+        if geoid not in geography_lookup and isinstance(display_name, str):
+            geography_lookup[geoid] = display_name
 
     tract_name = geography_lookup.get(tract_geoid)
     tract_highlights = compute_highlights_for_geoid(
@@ -1492,40 +1650,6 @@ def build_derived(
             comparisons_payload, geoid, name=geography_lookup.get(geoid)
         )
 
-    # Build section-level content.
-    sections: list[dict[str, Any]] = []
-    metric_map: dict[str, dict[str, Any]] = {}
-
-    population_metric = _metric_block(
-        tract_full_payload,
-        tract_geoid,
-        metric_id="population",
-        label="Population",
-        table_id="B01003",
-        column_id="B01003001",
-        format_hint="number",
-    )
-    metric_map["population"] = population_metric
-
-    demographics_section, demographics_metrics = _build_demographics_section(tract_full_payload, tract_geoid)
-    economics_section, economics_metrics = _build_economics_section(tract_full_payload, tract_geoid)
-    families_section, families_metrics = _build_families_section(tract_full_payload, tract_geoid)
-    housing_section, housing_metrics = _build_housing_section(tract_full_payload, tract_geoid)
-    social_section, social_metrics = _build_social_section(tract_full_payload, tract_geoid)
-
-    sections.extend(
-        [
-            demographics_section,
-            economics_section,
-            families_section,
-            housing_section,
-            social_section,
-        ]
-    )
-
-    for source in [demographics_metrics, economics_metrics, families_metrics, housing_metrics, social_metrics]:
-        metric_map.update(source)
-
     extractors = _metric_extractors()
     comparison_values_by_metric: dict[str, dict[str, float | int | None]] = {}
     for metric_id, extractor in extractors.items():
@@ -1533,35 +1657,159 @@ def build_derived(
             geoid: extractor(comparisons_payload, geoid) for geoid in comparison_geoids
         }
 
-    comparisons: dict[str, list[dict[str, Any]]] = {}
-    for metric_id, metric in metric_map.items():
-        if metric_id not in comparison_values_by_metric:
-            continue
-        tract_value = metric.get("estimate")
-        lines = _comparison_lines_for_metric(
-            metric,
-            tract_value=tract_value,
-            comparison_values=comparison_values_by_metric[metric_id],
-            selected_parents=selected_parents,
-            geography_lookup=geography_lookup,
-        )
-        if lines:
-            comparisons[metric_id] = lines
+    comparison_geoids_set = set(comparison_geoids)
+    place_geoid = _first_selected_parent_geoid(selected_parents, relation="place")
+    selectable_geoids_by_kind = {
+        "tract": tract_geoid,
+        "place": place_geoid,
+        "zcta": zcta_geoid,
+        "county": county_geoid,
+    }
+    selectable_geoids = [
+        (kind, selectable_geoids_by_kind.get(kind)) for kind in SELECTOR_KIND_ORDER
+    ]
 
-    for section in sections:
-        for metric in section.get("metrics", []):
-            metric_id = metric.get("id")
-            metric["comparisons"] = comparisons.get(metric_id, [])
+    geography_profiles_by_geoid: dict[str, dict[str, Any]] = {}
+    selector_options: list[dict[str, Any]] = []
+
+    tract_sections: list[dict[str, Any]] = []
+    tract_metrics: dict[str, dict[str, Any]] = {}
+    tract_comparisons: dict[str, list[dict[str, Any]]] = {}
+
+    for kind, geoid in selectable_geoids:
+        if not geoid:
+            continue
+        if kind != "tract" and geoid not in comparison_geoids_set:
+            continue
+        data_payload = comparisons_payload
+        if geoid == tract_geoid and geoid in tract_full_payload.get("data", {}):
+            data_payload = tract_full_payload
+        elif geoid in comparisons_payload.get("data", {}):
+            data_payload = comparisons_payload
+        elif geoid in tract_full_payload.get("data", {}):
+            data_payload = tract_full_payload
+        else:
+            continue
+
+        sections, metric_map = _build_sections_for_geoid(data_payload, geoid)
+        comparisons: dict[str, list[dict[str, Any]]] = {}
+        for metric_id, metric in metric_map.items():
+            if metric_id not in comparison_values_by_metric:
+                continue
+            base_value = metric.get("estimate")
+            lines = _comparison_lines_for_metric(
+                metric,
+                base_geoid=geoid,
+                base_value=base_value,
+                comparison_values=comparison_values_by_metric[metric_id],
+                selected_parents=selected_parents,
+                geography_lookup=geography_lookup,
+            )
+            if lines:
+                comparisons[metric_id] = lines
+
+        for section in sections:
+            for metric in section.get("metrics", []):
+                metric_id = metric.get("id")
+                metric["comparisons"] = comparisons.get(metric_id, [])
+
+        geography_meta = _get_geography_meta(
+            geoid=geoid,
+            payloads=[comparisons_payload, tract_full_payload],
+        )
+        profile_summary = _build_geography_profile_summary(
+            geoid=geoid,
+            geography_name=geography_lookup.get(geoid) or geoid,
+            metric_map=metric_map,
+            tract_geoid=tract_geoid,
+            tract_record=tract_record,
+            geography_meta=geography_meta,
+        )
+
+        geography_profiles_by_geoid[geoid] = {
+            "summary": profile_summary,
+            "sections": sections,
+        }
+        selector_options.append(
+            {
+                "kind": kind,
+                "geoid": geoid,
+                "label": SELECTOR_LABELS.get(kind, kind.title()),
+                "available": True,
+            }
+        )
+
+        if geoid == tract_geoid:
+            tract_sections = sections
+            tract_metrics = metric_map
+            tract_comparisons = comparisons
+
+    if not tract_sections:
+        tract_sections, tract_metrics = _build_sections_for_geoid(tract_full_payload, tract_geoid)
+        tract_comparisons = {}
+        for metric_id, metric in tract_metrics.items():
+            if metric_id not in comparison_values_by_metric:
+                continue
+            base_value = metric.get("estimate")
+            lines = _comparison_lines_for_metric(
+                metric,
+                base_geoid=tract_geoid,
+                base_value=base_value,
+                comparison_values=comparison_values_by_metric[metric_id],
+                selected_parents=selected_parents,
+                geography_lookup=geography_lookup,
+            )
+            if lines:
+                tract_comparisons[metric_id] = lines
+        for section in tract_sections:
+            for metric in section.get("metrics", []):
+                metric_id = metric.get("id")
+                metric["comparisons"] = tract_comparisons.get(metric_id, [])
+        geography_profiles_by_geoid.setdefault(
+            tract_geoid,
+            {
+                "summary": _build_geography_profile_summary(
+                    geoid=tract_geoid,
+                    geography_name=geography_lookup.get(tract_geoid) or tract_record.get("NAME"),
+                    metric_map=tract_metrics,
+                    tract_geoid=tract_geoid,
+                    tract_record=tract_record,
+                    geography_meta=_get_geography_meta(
+                        geoid=tract_geoid,
+                        payloads=[comparisons_payload, tract_full_payload],
+                    ),
+                ),
+                "sections": tract_sections,
+            },
+        )
+        if not any(option.get("kind") == "tract" for option in selector_options):
+            selector_options.insert(
+                0,
+                {
+                    "kind": "tract",
+                    "geoid": tract_geoid,
+                    "label": SELECTOR_LABELS["tract"],
+                    "available": True,
+                },
+            )
 
     profile_summary = _build_profile_summary(
         tract_record=tract_record,
         tract_geoid=tract_geoid,
         selected_parents=selected_parents,
         geography_lookup=geography_lookup,
-        tract_metrics=metric_map,
+        tract_metrics=tract_metrics,
     )
 
-    return tract_highlights, comparison_highlights, sections, comparisons, profile_summary
+    return (
+        tract_highlights,
+        comparison_highlights,
+        tract_sections,
+        tract_comparisons,
+        profile_summary,
+        geography_profiles_by_geoid,
+        selector_options,
+    )
 
 
 def lookup_census_profile_by_point(
@@ -1670,6 +1918,8 @@ def lookup_census_profile_by_point(
         sections,
         comparisons,
         profile_summary,
+        geography_profiles_by_geoid,
+        selector_options,
     ) = build_derived(
         tract_full_payload,
         comparisons_payload,
@@ -1677,6 +1927,8 @@ def lookup_census_profile_by_point(
         tract_geoid,
         selected_parents,
         tract_record,
+        zcta_geoid=zcta_geoid,
+        county_geoid=county_geoid,
     )
     release = comparisons_payload.get("release") or tract_full_payload.get("release")
 
@@ -1732,6 +1984,8 @@ def lookup_census_profile_by_point(
             "comparison_highlights_by_geoid": comparison_highlights,
             "sections": sections,
             "comparisons": comparisons,
+            "geography_profiles_by_geoid": geography_profiles_by_geoid,
+            "selector_options": selector_options,
         },
         "errors": errors,
     }

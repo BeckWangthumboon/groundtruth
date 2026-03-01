@@ -170,11 +170,20 @@ function SectionView({ section }) {
 }
 
 export function CensusDataPanel({ status, data, errorMessage, locationLabel }) {
-  const displayModel = useMemo(() => (status === 'success' ? buildCensusDisplayModel(data) : null), [status, data])
+  const [selectorState, setSelectorState] = useState({ loadKey: null, geoid: null })
   const [activeSectionId, setActiveSectionId] = useState('demographics')
+  const dataLoadKey = data?.input?.timestamp_utc || data?.tract?.reporter_geoid || null
+  const selectedGeoid = selectorState.loadKey === dataLoadKey ? selectorState.geoid : null
+  const displayModel = useMemo(
+    () => (status === 'success' ? buildCensusDisplayModel(data, selectedGeoid) : null),
+    [status, data, selectedGeoid]
+  )
 
   const sections = displayModel?.sections || []
-  const activeSection = sections.find((section) => section.id === activeSectionId) || sections[0] || null
+  const resolvedActiveSectionId = sections.some((section) => section.id === activeSectionId)
+    ? activeSectionId
+    : sections[0]?.id || null
+  const activeSection = sections.find((section) => section.id === resolvedActiveSectionId) || null
 
   const profile = displayModel?.profile
   const displayLocation = profile?.tractName || locationLabel || 'Census data'
@@ -185,6 +194,29 @@ export function CensusDataPanel({ status, data, errorMessage, locationLabel }) {
         <h2 className="census-panel__location">{displayLocation}</h2>
         {profile?.hierarchyLine ? <p className="census-panel__subtitle">{profile.hierarchyLine}</p> : null}
         <p className="census-panel__subtitle census-panel__subtitle--release">{profile?.releaseText || 'Census data: ACS 5-year estimates'}</p>
+
+        {status === 'success' && displayModel?.selectorOptions?.length ? (
+          <div className="census-geography-selector">
+            <label htmlFor="census-geography-select">Geography</label>
+            <select
+              id="census-geography-select"
+              value={displayModel.selectedGeoid || ''}
+              onChange={(event) =>
+                setSelectorState({
+                  loadKey: dataLoadKey,
+                  geoid: event.target.value,
+                })
+              }
+              disabled={displayModel.selectorOptions.length <= 1}
+            >
+              {displayModel.selectorOptions.map((option) => (
+                <option key={option.geoid} value={option.geoid}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
 
         {status === 'success' ? (
           <div className="census-profile-stats">
@@ -232,8 +264,8 @@ export function CensusDataPanel({ status, data, errorMessage, locationLabel }) {
                 key={section.id}
                 type="button"
                 role="tab"
-                aria-selected={section.id === activeSection.id}
-                className={`census-section-tabs__tab${section.id === activeSection.id ? ' is-active' : ''}`}
+                aria-selected={section.id === resolvedActiveSectionId}
+                className={`census-section-tabs__tab${section.id === resolvedActiveSectionId ? ' is-active' : ''}`}
                 onClick={() => setActiveSectionId(section.id)}
               >
                 {section.title}

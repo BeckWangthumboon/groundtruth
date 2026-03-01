@@ -730,6 +730,35 @@ body {
   font-size: 0.78rem;
 }
 
+.census-geography-selector {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.census-geography-selector label {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(179, 199, 231, 0.84);
+}
+
+.census-geography-selector select {
+  border: 1px solid rgba(161, 186, 228, 0.36);
+  background: rgba(14, 22, 36, 0.9);
+  color: rgba(238, 246, 255, 0.98);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.census-geography-selector select:disabled {
+  opacity: 0.58;
+  cursor: default;
+}
+
 .census-profile-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

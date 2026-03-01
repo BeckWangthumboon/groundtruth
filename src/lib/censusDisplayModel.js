@@ -1,4 +1,11 @@
 const SECTION_ORDER = ['demographics', 'economics', 'families', 'housing', 'social']
+const SELECTOR_KIND_ORDER = ['tract', 'place', 'zcta', 'county']
+const SELECTOR_LABELS = {
+  tract: 'Census Tract',
+  place: 'Place',
+  zcta: 'ZIP Code',
+  county: 'County',
+}
 
 function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value)
@@ -66,8 +73,68 @@ function formatDensity(value) {
   return `${formatNumber(value, 1)} people / sq mi`
 }
 
-function buildProfileModel(data) {
+function getSelectorLabel(kind, providedLabel) {
+  if (typeof providedLabel === 'string' && providedLabel.trim()) {
+    return providedLabel
+  }
+  return SELECTOR_LABELS[kind] || 'Geography'
+}
+
+function normalizeSelectorOptions(data) {
+  const rawOptions = Array.isArray(data?.derived?.selector_options) ? data.derived.selector_options : []
+  const normalized = rawOptions
+    .filter(
+      (option) =>
+        option &&
+        option.available !== false &&
+        typeof option.geoid === 'string' &&
+        option.geoid.length > 0 &&
+        typeof option.kind === 'string'
+    )
+    .map((option) => ({
+      kind: option.kind,
+      geoid: option.geoid,
+      label: getSelectorLabel(option.kind, option.label),
+      available: true,
+    }))
+    .sort((a, b) => {
+      const idxA = SELECTOR_KIND_ORDER.indexOf(a.kind)
+      const idxB = SELECTOR_KIND_ORDER.indexOf(b.kind)
+      const rankA = idxA === -1 ? Number.MAX_SAFE_INTEGER : idxA
+      const rankB = idxB === -1 ? Number.MAX_SAFE_INTEGER : idxB
+      return rankA - rankB
+    })
+
+  if (normalized.length > 0) {
+    return normalized
+  }
+
+  const fallbackTractGeoid = data?.tract?.reporter_geoid || data?.derived?.profile_summary?.tract_geoid
+  if (!fallbackTractGeoid) {
+    return []
+  }
+
+  return [
+    {
+      kind: 'tract',
+      geoid: fallbackTractGeoid,
+      label: SELECTOR_LABELS.tract,
+      available: true,
+    },
+  ]
+}
+
+function resolveSelectedGeoid(selectorOptions, selectedGeoid) {
+  if (typeof selectedGeoid === 'string' && selectorOptions.some((option) => option.geoid === selectedGeoid)) {
+    return selectedGeoid
+  }
+  return selectorOptions[0]?.geoid || null
+}
+
+function buildProfileModel(data, selectedProfile, selectedOption) {
   const profileSummary = data?.derived?.profile_summary ?? {}
+  const summary = selectedProfile?.summary ?? {}
+  const hasSelectedSummary = Boolean(selectedProfile?.summary)
   const release = data?.release
   const hierarchy = Array.isArray(profileSummary?.hierarchy) ? profileSummary.hierarchy : []
 
@@ -76,12 +143,18 @@ function buildProfileModel(data) {
     .filter(Boolean)
     .join(', ')
 
+  const profileName =
+    summary?.name || profileSummary?.tract_name || data?.tract?.geocoder_tract_record?.NAME || selectedOption?.label
+
   return {
-    tractName: profileSummary?.tract_name || data?.tract?.geocoder_tract_record?.NAME || 'Census profile',
+    geoid: summary?.geoid || selectedOption?.geoid || profileSummary?.tract_geoid || null,
+    tractName: profileName || 'Census profile',
     hierarchyLine,
-    populationText: formatNumber(profileSummary?.population, 0),
-    areaText: formatAreaSqMiles(profileSummary?.area_sq_miles),
-    densityText: formatDensity(profileSummary?.density_per_sq_mile),
+    populationText: formatNumber(hasSelectedSummary ? summary?.population : profileSummary?.population, 0),
+    areaText: formatAreaSqMiles(hasSelectedSummary ? summary?.area_sq_miles : profileSummary?.area_sq_miles),
+    densityText: formatDensity(
+      hasSelectedSummary ? summary?.density_per_sq_mile : profileSummary?.density_per_sq_mile
+    ),
     releaseText:
       release?.name || (release?.id ? `Census data: ${release.id}` : 'Census data: ACS 5-year estimates'),
   }
@@ -125,8 +198,21 @@ function normalizeChart(chart) {
   }
 }
 
-export function buildCensusDisplayModel(data) {
-  const sectionsRaw = Array.isArray(data?.derived?.sections) ? data.derived.sections : []
+export function buildCensusDisplayModel(data, selectedGeoid) {
+  const selectorOptions = normalizeSelectorOptions(data)
+  const resolvedSelectedGeoid = resolveSelectedGeoid(selectorOptions, selectedGeoid)
+  const selectedOption = selectorOptions.find((option) => option.geoid === resolvedSelectedGeoid) ?? selectorOptions[0] ?? null
+
+  const selectedProfile =
+    resolvedSelectedGeoid && data?.derived?.geography_profiles_by_geoid
+      ? data.derived.geography_profiles_by_geoid[resolvedSelectedGeoid]
+      : null
+
+  const sectionsRaw = Array.isArray(selectedProfile?.sections)
+    ? selectedProfile.sections
+    : Array.isArray(data?.derived?.sections)
+      ? data.derived.sections
+      : []
 
   const orderedSections = [...sectionsRaw].sort((a, b) => {
     const idxA = SECTION_ORDER.indexOf(a?.id)
@@ -149,7 +235,9 @@ export function buildCensusDisplayModel(data) {
   })
 
   return {
-    profile: buildProfileModel(data),
+    selectorOptions,
+    selectedGeoid: resolvedSelectedGeoid,
+    profile: buildProfileModel(data, selectedProfile, selectedOption),
     sections,
   }
 }

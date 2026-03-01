@@ -28,16 +28,13 @@ export async function fetchIsochrone({
 }
 
 /**
- * Fetch nearby POIs via the Mapbox Tilequery API.
- *
- * @param {{ lon: number, lat: number, radius?: number, layers?: string, limit?: number, signal?: AbortSignal }} opts
- * @returns {Promise<GeoJSON.FeatureCollection>}
+ * Fetch nearby POIs via the Mapbox Tilequery API (single point, max 50).
  */
-export async function fetchTilequeryPois({
+async function fetchTilequerySingle({
   lon,
   lat,
   radius = 800,
-  layers = 'poi_label,building',
+  layers = 'poi_label',
   limit = 50,
   signal,
 }) {
@@ -54,4 +51,89 @@ export async function fetchTilequeryPois({
     throw new Error(`Tilequery request failed (${response.status})`)
   }
   return response.json()
+}
+
+/**
+ * Convert a meter offset to approximate degree offset.
+ */
+function metersToDegreeLng(meters, lat) {
+  return meters / (111320 * Math.cos((lat * Math.PI) / 180))
+}
+function metersToDegreeLat(meters) {
+  return meters / 111320
+}
+
+/**
+ * Build a dedup key for a POI feature so we can merge results from
+ * overlapping grid queries.  Round coordinates to ~1 m precision.
+ */
+function poiDedupeKey(feature) {
+  const [lng, lat] = feature.geometry?.coordinates ?? [0, 0]
+  const name = feature.properties?.name ?? ''
+  return `${lng.toFixed(5)},${lat.toFixed(5)}|${name}`
+}
+
+/**
+ * Fetch nearby POIs via multiple Tilequery grid queries to overcome the
+ * 50-feature-per-request API cap.
+ *
+ * Queries the center point plus surrounding offsets, deduplicates, and
+ * returns a single merged FeatureCollection.
+ *
+ * @param {{ lon: number, lat: number, radius?: number, layers?: string, limit?: number, signal?: AbortSignal }} opts
+ * @returns {Promise<GeoJSON.FeatureCollection>}
+ */
+export async function fetchTilequeryPois({
+  lon,
+  lat,
+  radius = 800,
+  layers = 'poi_label',
+  limit = 50,
+  signal,
+}) {
+  // Fixed per-query radius that gives good density (each circle returns
+  // most POIs within it rather than sparse-sampling a huge area).
+  const CELL_RADIUS = 1000
+  const spacing = CELL_RADIUS * 1.4
+
+  // Number of rings around center: 1 → 3×3 (9 pts), 2 → 5×5 (25 pts)
+  const rings = Math.max(1, Math.min(Math.ceil(radius / spacing / 2), 2))
+
+  const queryPoints = []
+  for (let dy = -rings; dy <= rings; dy++) {
+    for (let dx = -rings; dx <= rings; dx++) {
+      const ptLng = lon + dx * metersToDegreeLng(spacing, lat)
+      const ptLat = lat + dy * metersToDegreeLat(spacing)
+      queryPoints.push([ptLng, ptLat])
+    }
+  }
+
+  const results = await Promise.allSettled(
+    queryPoints.map((pt) =>
+      fetchTilequerySingle({
+        lon: pt[0],
+        lat: pt[1],
+        radius: CELL_RADIUS,
+        layers,
+        limit,
+        signal,
+      })
+    )
+  )
+
+  const seen = new Set()
+  const merged = []
+
+  for (const result of results) {
+    if (result.status !== 'fulfilled') continue
+    for (const feature of result.value.features ?? []) {
+      const key = poiDedupeKey(feature)
+      if (!seen.has(key)) {
+        seen.add(key)
+        merged.push(feature)
+      }
+    }
+  }
+
+  return { type: 'FeatureCollection', features: merged }
 }

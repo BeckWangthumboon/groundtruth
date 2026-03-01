@@ -69,7 +69,7 @@ body {
   position: absolute;
   inset: 0;
   z-index: 0;
-  filter: grayscale(1) saturate(0) contrast(1.08) brightness(0.62);
+  filter: grayscale(0.55) saturate(0.6) contrast(1.03) brightness(0.82);
   transition: filter 320ms ease;
 }
 
@@ -1288,4 +1288,49 @@ body {
     width: 100%;
     padding: 12px;
   }
+}
+
+/* ── POI Category Chips ─────────────────────────── */
+
+.poi-category-chips {
+  display: flex;
+  gap: 6px;
+  padding: 0 14px 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-wrap: wrap;
+}
+
+.poi-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(233, 241, 252, 0.16);
+  background: rgba(28, 37, 57, 0.6);
+  color: rgba(200, 212, 235, 0.85);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.poi-chip--active {
+  border-color: rgba(40, 220, 255, 0.6);
+  background: rgba(40, 220, 255, 0.12);
+  color: rgba(40, 220, 255, 0.95);
+}
+
+.poi-chip__count {
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+/* ── Zone Count Labels ──────────────────────────── */
+
+.map-overlay-zone-count {
+  color: rgba(200, 212, 235, 0.6);
+  font-size: 10px;
+  margin-left: 2px;
 }

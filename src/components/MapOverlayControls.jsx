@@ -8,6 +8,7 @@ export function MapOverlayControls({
   isochroneLoading,
   poisLoading,
   isochroneContours = [],
+  zoneCounts,
 }) {
   const legendContours =
     isochroneContours.length > 0
@@ -56,6 +57,11 @@ export function MapOverlayControls({
             <span key={item.contour} className="map-overlay-legend__item">
               <span className="map-overlay-swatch" style={{ background: item.outline }} />
               {item.contour} min
+              {zoneCounts?.[item.contour] != null && (
+                <span className="map-overlay-zone-count">
+                  · {zoneCounts[item.contour]} places
+                </span>
+              )}
             </span>
           ))}
         </div>

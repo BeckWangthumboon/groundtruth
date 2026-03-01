@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { AnalysisLoadingOverlay } from './components/AnalysisLoadingOverlay'
 import { CensusDataPanel } from './components/CensusDataPanel'
 import { fetchCensusByPoint } from './lib/api'
+import booleanPointInPolygon from '@turf/boolean-point-in-polygon'
 import { fetchIsochrone, fetchTilequeryPois } from './lib/mapboxApi'
 import { MapOverlayControls } from './components/MapOverlayControls'
 
@@ -316,6 +317,7 @@ function App() {
   const lastSearchCoordsRef = useRef(null)
   const overlayAbortRef = useRef(null)
   const [hoveredPoiGroupKey, setHoveredPoiGroupKey] = useState(null)
+  const [selectedPoiCategories, setSelectedPoiCategories] = useState(null) // null = show all
 
   const normalizedTilequeryData = useMemo(() => {
     const features = Array.isArray(tilequeryData?.features) ? tilequeryData.features : []
@@ -366,37 +368,117 @@ function App() {
 
   const totalNearbyPlaces = normalizedTilequeryData.features.length
 
+  const filteredTilequeryData = useMemo(() => {
+    if (!selectedPoiCategories || selectedPoiCategories.size === 0) {
+      return normalizedTilequeryData
+    }
+    return {
+      type: 'FeatureCollection',
+      features: normalizedTilequeryData.features.filter(f =>
+        selectedPoiCategories.has(f.properties?.ui_group_key)
+      ),
+    }
+  }, [normalizedTilequeryData, selectedPoiCategories])
+
+  const isochroneZoneCounts = useMemo(() => {
+    const counts = { 5: 0, 10: 0, 15: 0 }
+    if (!isochroneData?.features?.length || !filteredTilequeryData.features.length) return counts
+
+    const sortedContours = [...ISOCHRONE_CONTOURS].sort((a, b) => a.contour - b.contour)
+
+    for (const poi of filteredTilequeryData.features) {
+      const coords = poi.geometry?.coordinates
+      if (!coords) continue
+      const point = [coords[0], coords[1]]
+
+      for (const { contour } of sortedContours) {
+        const polygon = isochroneData.features.find(f => f.properties?.contour === contour)
+        if (polygon && booleanPointInPolygon(point, polygon)) {
+          counts[contour]++
+          break
+        }
+      }
+    }
+    return counts
+  }, [isochroneData, filteredTilequeryData])
+
   const applyPoiGroupHighlightPaint = useCallback((map, groupKey) => {
-    if (!map.getLayer('tilequery-pois-circle')) {
+    if (!map.getLayer('poi-unclustered')) {
       return
     }
+    const hasGlowLayer = Boolean(map.getLayer('poi-unclustered-glow'))
 
     if (!groupKey) {
-      map.setPaintProperty('tilequery-pois-circle', 'circle-radius', 5)
-      map.setPaintProperty('tilequery-pois-circle', 'circle-color', '#f59e0b')
-      map.setPaintProperty('tilequery-pois-circle', 'circle-stroke-width', 1)
-      map.setPaintProperty('tilequery-pois-circle', 'circle-stroke-color', '#ffffff')
-      map.setPaintProperty('tilequery-pois-circle', 'circle-opacity', 1)
+      map.setPaintProperty('poi-unclustered', 'circle-radius', 6)
+      map.setPaintProperty('poi-unclustered', 'circle-color', '#94f4ff')
+      map.setPaintProperty('poi-unclustered', 'circle-stroke-width', 1.6)
+      map.setPaintProperty('poi-unclustered', 'circle-stroke-color', '#ffffff')
+      map.setPaintProperty('poi-unclustered', 'circle-opacity', 1)
+      map.setPaintProperty('poi-unclustered', 'circle-blur', 0.1)
+      map.setPaintProperty('poi-unclustered', 'circle-emissive-strength', 1.3)
+
+      if (hasGlowLayer) {
+        map.setPaintProperty('poi-unclustered-glow', 'circle-radius', 11)
+        map.setPaintProperty('poi-unclustered-glow', 'circle-color', 'rgba(120, 241, 255, 0.95)')
+        map.setPaintProperty('poi-unclustered-glow', 'circle-opacity', 0.58)
+        map.setPaintProperty('poi-unclustered-glow', 'circle-blur', 0.85)
+        map.setPaintProperty('poi-unclustered-glow', 'circle-emissive-strength', 1.35)
+      }
       return
     }
 
     const isHighlighted = ['==', ['get', 'ui_group_key'], groupKey]
 
-    map.setPaintProperty('tilequery-pois-circle', 'circle-radius', ['case', isHighlighted, 9, 4])
-    map.setPaintProperty('tilequery-pois-circle', 'circle-color', [
+    map.setPaintProperty('poi-unclustered', 'circle-radius', ['case', isHighlighted, 10, 6])
+    map.setPaintProperty('poi-unclustered', 'circle-color', [
       'case',
       isHighlighted,
-      '#28dcff',
-      'rgba(245, 158, 11, 0.45)',
+      '#ccfdff',
+      '#8beeff',
     ])
-    map.setPaintProperty('tilequery-pois-circle', 'circle-stroke-width', ['case', isHighlighted, 2.2, 0.9])
-    map.setPaintProperty('tilequery-pois-circle', 'circle-stroke-color', [
+    map.setPaintProperty('poi-unclustered', 'circle-stroke-width', ['case', isHighlighted, 2.6, 1.4])
+    map.setPaintProperty('poi-unclustered', 'circle-stroke-color', [
       'case',
       isHighlighted,
-      '#ebfeff',
-      'rgba(255, 255, 255, 0.45)',
+      '#ffffff',
+      'rgba(235, 253, 255, 0.95)',
     ])
-    map.setPaintProperty('tilequery-pois-circle', 'circle-opacity', ['case', isHighlighted, 1, 0.35])
+    map.setPaintProperty('poi-unclustered', 'circle-opacity', ['case', isHighlighted, 1, 0.82])
+    map.setPaintProperty('poi-unclustered', 'circle-blur', ['case', isHighlighted, 0.05, 0.16])
+    map.setPaintProperty('poi-unclustered', 'circle-emissive-strength', ['case', isHighlighted, 1.5, 1.2])
+
+    if (hasGlowLayer) {
+      map.setPaintProperty('poi-unclustered-glow', 'circle-radius', ['case', isHighlighted, 15, 9])
+      map.setPaintProperty('poi-unclustered-glow', 'circle-color', [
+        'case',
+        isHighlighted,
+        'rgba(175, 251, 255, 0.98)',
+        'rgba(120, 241, 255, 0.95)',
+      ])
+      map.setPaintProperty('poi-unclustered-glow', 'circle-opacity', ['case', isHighlighted, 0.95, 0.32])
+      map.setPaintProperty('poi-unclustered-glow', 'circle-blur', 0.88)
+      map.setPaintProperty('poi-unclustered-glow', 'circle-emissive-strength', [
+        'case',
+        isHighlighted,
+        1.7,
+        1.1,
+      ])
+    }
+  }, [])
+
+  const handlePoiCategoryToggle = useCallback((groupKey) => {
+    setSelectedPoiCategories(prev => {
+      if (!prev) {
+        return new Set([groupKey])
+      }
+      const next = new Set(prev)
+      if (next.has(groupKey)) {
+        next.delete(groupKey)
+      } else {
+        next.add(groupKey)
+      }
+      return next.size === 0 ? null : next
+    })
   }, [])
 
   const censusMutation = useMutation({
@@ -475,7 +557,13 @@ function App() {
     const addOverlaySources = () => {
       if (!mapInstance.getSource('isochrone-source')) {
         mapInstance.addSource('isochrone-source', { type: 'geojson', data: emptyGeoJson })
-        mapInstance.addSource('tilequery-pois-source', { type: 'geojson', data: emptyGeoJson })
+        mapInstance.addSource('tilequery-pois-source', {
+          type: 'geojson',
+          data: emptyGeoJson,
+          cluster: true,
+          clusterRadius: 45,
+          clusterMaxZoom: 14,
+        })
 
         for (const { contour, fill, outline } of ISOCHRONE_CONTOURS) {
           mapInstance.addLayer({
@@ -494,18 +582,96 @@ function App() {
           })
         }
 
+        // Clustered circles
         mapInstance.addLayer({
-          id: 'tilequery-pois-circle',
+          id: 'poi-clusters',
           type: 'circle',
           source: 'tilequery-pois-source',
+          filter: ['has', 'point_count'],
           paint: {
-            'circle-radius': 5,
-            'circle-color': '#f59e0b',
-            'circle-stroke-width': 1,
-            'circle-stroke-color': '#ffffff',
-            'circle-opacity': 1,
+            'circle-radius': ['step', ['get', 'point_count'], 14, 5, 20, 10, 26, 25, 34],
+            'circle-color': '#86efff',
+            'circle-opacity': 0.9,
+            'circle-blur': 0.18,
+            'circle-stroke-width': 2.2,
+            'circle-stroke-color': 'rgba(255, 255, 255, 0.9)',
+            'circle-emissive-strength': 1.25,
           },
         })
+
+        // Cluster count labels
+        mapInstance.addLayer({
+          id: 'poi-cluster-count',
+          type: 'symbol',
+          source: 'tilequery-pois-source',
+          filter: ['has', 'point_count'],
+          layout: {
+            'text-field': ['get', 'point_count_abbreviated'],
+            'text-size': 11,
+            'text-font': ['DIN Pro Medium', 'Arial Unicode MS Bold'],
+          },
+          paint: {
+            'text-color': '#ffffff',
+            'text-halo-color': 'rgba(0,0,0,0.5)',
+            'text-halo-width': 1,
+          },
+        })
+
+        // Unclustered glow halo (under main POI dot)
+        mapInstance.addLayer({
+          id: 'poi-unclustered-glow',
+          type: 'circle',
+          source: 'tilequery-pois-source',
+          filter: ['!', ['has', 'point_count']],
+          paint: {
+            'circle-radius': 11,
+            'circle-color': 'rgba(120, 241, 255, 0.95)',
+            'circle-opacity': 0.58,
+            'circle-blur': 0.85,
+            'circle-emissive-strength': 1.35,
+          },
+        })
+
+        // Unclustered individual points
+        mapInstance.addLayer({
+          id: 'poi-unclustered',
+          type: 'circle',
+          source: 'tilequery-pois-source',
+          filter: ['!', ['has', 'point_count']],
+          paint: {
+            'circle-radius': 6,
+            'circle-color': '#94f4ff',
+            'circle-stroke-width': 1.6,
+            'circle-stroke-color': '#ffffff',
+            'circle-opacity': 1,
+            'circle-blur': 0.1,
+            'circle-emissive-strength': 1.3,
+          },
+        })
+
+        // Click unclustered POI → highlight group in sidebar
+        mapInstance.on('click', 'poi-unclustered', (e) => {
+          const feature = e.features?.[0]
+          if (feature) {
+            setHoveredPoiGroupKey(feature.properties?.ui_group_key || null)
+          }
+        })
+
+        // Click cluster → zoom in to expand
+        mapInstance.on('click', 'poi-clusters', (e) => {
+          const features = mapInstance.queryRenderedFeatures(e.point, { layers: ['poi-clusters'] })
+          const clusterId = features[0]?.properties?.cluster_id
+          mapInstance.getSource('tilequery-pois-source').getClusterExpansionZoom(clusterId, (err, zoom) => {
+            if (err) return
+            mapInstance.easeTo({ center: e.lngLat, zoom: zoom + 1 })
+          })
+        })
+
+        // Cursor changes
+        mapInstance.on('mouseenter', 'poi-unclustered', () => { mapInstance.getCanvas().style.cursor = 'pointer' })
+        mapInstance.on('mouseleave', 'poi-unclustered', () => { mapInstance.getCanvas().style.cursor = '' })
+        mapInstance.on('mouseenter', 'poi-clusters', () => { mapInstance.getCanvas().style.cursor = 'pointer' })
+        mapInstance.on('mouseleave', 'poi-clusters', () => { mapInstance.getCanvas().style.cursor = '' })
       }
 
       applyPoiGroupHighlightPaint(mapInstance, hoveredPoiGroupKey)
@@ -527,9 +693,11 @@ function App() {
     setIsochroneLoading(true)
     setPoisLoading(true)
 
+    const poiRadius = profile === 'driving' ? 5000 : 1500
+
     const [isoResult, poiResult] = await Promise.allSettled([
       fetchIsochrone({ lon: lng, lat, profile, signal }),
-      fetchTilequeryPois({ lon: lng, lat, signal }),
+      fetchTilequeryPois({ lon: lng, lat, radius: poiRadius, signal }),
     ])
 
     if (!signal?.aborted) {
@@ -559,28 +727,9 @@ function App() {
       const controller = new AbortController()
       overlayAbortRef.current = controller
 
-      setIsochroneLoading(true)
-      try {
-        const data = await fetchIsochrone({
-          lon: coords.lng,
-          lat: coords.lat,
-          profile: newProfile,
-          signal: controller.signal,
-        })
-        if (!controller.signal.aborted) {
-          setIsochroneData(data)
-        }
-      } catch (err) {
-        if (!controller.signal.aborted) {
-          console.warn('Isochrone re-fetch failed:', err)
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsochroneLoading(false)
-        }
-      }
+      fetchMapOverlayData(coords.lng, coords.lat, newProfile, controller.signal)
     },
-    []
+    [fetchMapOverlayData]
   )
 
   const flyToSearchFeature = useCallback((feature, onMoveEnd) => {
@@ -668,6 +817,7 @@ function App() {
       // Clear old overlay data and fire parallel fetch
       setIsochroneData(null)
       setTilequeryData(null)
+      setSelectedPoiCategories(null)
       overlayAbortRef.current?.abort()
       const overlayController = new AbortController()
       overlayAbortRef.current = overlayController
@@ -856,13 +1006,13 @@ function App() {
     source.setData(showIsochrone && isochroneData ? isochroneData : emptyGeoJson)
   }, [mapInstance, isochroneData, showIsochrone])
 
-  // Sync POI data to map source
+  // Sync POI data to map source (uses filtered data for category chips)
   useEffect(() => {
     const source = mapInstance?.getSource('tilequery-pois-source')
     if (!source) return
     const emptyGeoJson = { type: 'FeatureCollection', features: [] }
-    source.setData(showTilequeryPois ? normalizedTilequeryData : emptyGeoJson)
-  }, [mapInstance, normalizedTilequeryData, showTilequeryPois])
+    source.setData(showTilequeryPois ? filteredTilequeryData : emptyGeoJson)
+  }, [mapInstance, filteredTilequeryData, showTilequeryPois])
 
   useEffect(() => {
     if (!hoveredPoiGroupKey) {
@@ -957,6 +1107,22 @@ function App() {
                 </p>
               </header>
 
+              {nearbyPlaceGroups.length > 0 && !poisLoading && (
+                <div className="poi-category-chips">
+                  {nearbyPlaceGroups.map(group => (
+                    <button
+                      key={group.key}
+                      type="button"
+                      className={`poi-chip${selectedPoiCategories?.has(group.key) ? ' poi-chip--active' : ''}`}
+                      onClick={() => handlePoiCategoryToggle(group.key)}
+                    >
+                      {group.label}
+                      <span className="poi-chip__count">{group.count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {poisLoading ? (
                 <p className="poi-results-panel__status">Loading nearby places from Mapbox…</p>
               ) : nearbyPlaceGroups.length > 0 ? (
@@ -982,6 +1148,19 @@ function App() {
                             current === group.key ? null : current
                           )
                         }
+                        onClick={() => {
+                          const groupFeatures = filteredTilequeryData.features.filter(
+                            f => f.properties?.ui_group_key === group.key
+                          )
+                          if (groupFeatures.length === 0 || !mapInstance) return
+
+                          const coords = groupFeatures.map(f => f.geometry.coordinates)
+                          const lngs = coords.map(c => c[0])
+                          const lats = coords.map(c => c[1])
+                          const bounds = [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]]
+                          mapInstance.fitBounds(bounds, { padding: 80, maxZoom: 16, duration: 800 })
+                          setHoveredPoiGroupKey(group.key)
+                        }}
                       >
                         <p className="poi-results-panel__name">{group.label}</p>
                         <p className="poi-results-panel__count">Count = {group.count}</p>
@@ -1006,6 +1185,7 @@ function App() {
               isochroneLoading={isochroneLoading}
               poisLoading={poisLoading}
               isochroneContours={ISOCHRONE_CONTOURS}
+              zoneCounts={isochroneZoneCounts}
             />
           </div>
         )}

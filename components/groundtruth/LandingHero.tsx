@@ -1,31 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import type { SearchBoxRetrieveResponse } from "@mapbox/search-js-core";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { AlertCircle, Orbit } from "lucide-react";
-import SearchBar from "@/components/groundtruth/SearchBar";
 import { hasMapboxToken, MAPBOX_TOKEN, MAP_STYLE_HERO } from "@/lib/groundtruth/config";
-import { fetchFirstGeocodeResult, fetchGeocodingSuggestions } from "@/lib/groundtruth/geocode";
-import { GeocodeSuggestion, LocationSelection } from "@/lib/groundtruth/types";
+import { DEMO_LOCATION, toExploreUrl } from "@/lib/groundtruth/location";
+import { toLocationFromSearchBoxRetrieve } from "@/lib/groundtruth/searchbox";
+import { LocationSelection } from "@/lib/groundtruth/types";
 
 const HERO_CENTER: [number, number] = [0, 20];
 const HERO_ZOOM = 0.85;
-const DEMO_LOCATION: LocationSelection = {
-  label: "Downtown Atlanta, Georgia",
-  coordinates: [-84.38798, 33.74876],
-};
-
-function toExploreUrl(location: LocationSelection): string {
-  const [lng, lat] = location.coordinates;
-  const params = new URLSearchParams({
-    q: location.label,
-    lat: lat.toFixed(6),
-    lng: lng.toFixed(6),
-  });
-  return `/explore?${params.toString()}`;
-}
+const HERO_FLY_DURATION_MS = 2400;
+const HERO_FLY_FALLBACK_MS = 3200;
+const SEARCH_TYPES = "country,region,postcode,district,place,locality,neighborhood,street,address";
+const SearchBox = dynamic(() => import("@mapbox/search-js-react").then((mod) => mod.SearchBox), { ssr: false });
 
 function isAuthError(message: string): boolean {
   const lowered = message.toLowerCase();
@@ -36,16 +28,15 @@ export default function LandingHero() {
   const router = useRouter();
   const hasToken = hasMapboxToken();
 
-  const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<GeocodeSuggestion[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const rotationFrameRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef<number>(0);
+  const transitionTimeoutRef = useRef<number | null>(null);
 
   const stopRotation = useCallback(() => {
     if (rotationFrameRef.current !== null) {
@@ -79,6 +70,74 @@ export default function LandingHero() {
 
     rotationFrameRef.current = requestAnimationFrame(tick);
   }, [stopRotation]);
+
+  const transitionToExplore = useCallback(
+    (location: LocationSelection) => {
+      if (isTransitioning) return;
+
+      setIsTransitioning(true);
+      setSearchError(null);
+
+      const map = mapRef.current;
+      let done = false;
+
+      const finish = () => {
+        if (done) return;
+        done = true;
+
+        if (transitionTimeoutRef.current !== null) {
+          window.clearTimeout(transitionTimeoutRef.current);
+          transitionTimeoutRef.current = null;
+        }
+
+        setIsTransitioning(false);
+        router.push(toExploreUrl(location));
+      };
+
+      if (!map || !map.loaded()) {
+        finish();
+        return;
+      }
+
+      stopRotation();
+      map.stop();
+
+      const onMoveEnd = () => {
+        map.off("moveend", onMoveEnd);
+        finish();
+      };
+
+      map.on("moveend", onMoveEnd);
+      transitionTimeoutRef.current = window.setTimeout(() => {
+        map.off("moveend", onMoveEnd);
+        finish();
+      }, HERO_FLY_FALLBACK_MS);
+
+      map.flyTo({
+        center: location.coordinates,
+        zoom: 14,
+        pitch: 52,
+        bearing: -28,
+        duration: HERO_FLY_DURATION_MS,
+        essential: true,
+        easing: (value) => 1 - Math.pow(1 - value, 3),
+      });
+    },
+    [isTransitioning, router, stopRotation]
+  );
+
+  const handleRetrieve = useCallback(
+    (result: SearchBoxRetrieveResponse) => {
+      const location = toLocationFromSearchBoxRetrieve(result);
+      if (!location) {
+        setSearchError("No location results found for this query.");
+        return;
+      }
+
+      transitionToExplore(location);
+    },
+    [transitionToExplore]
+  );
 
   useEffect(() => {
     if (!hasToken || !mapContainerRef.current || mapRef.current) return;
@@ -128,67 +187,14 @@ export default function LandingHero() {
 
     return () => {
       stopRotation();
+      if (transitionTimeoutRef.current !== null) {
+        window.clearTimeout(transitionTimeoutRef.current);
+        transitionTimeoutRef.current = null;
+      }
       map.remove();
       mapRef.current = null;
     };
   }, [hasToken, startRotation, stopRotation]);
-
-  useEffect(() => {
-    if (!hasToken) return;
-    if (query.trim().length < 2) {
-      setSuggestions([]);
-      return;
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(async () => {
-      try {
-        const results = await fetchGeocodingSuggestions(query, MAPBOX_TOKEN, controller.signal);
-        setSuggestions(results);
-      } catch {
-        setSuggestions([]);
-      }
-    }, 170);
-
-    return () => {
-      controller.abort();
-      clearTimeout(timeout);
-    };
-  }, [hasToken, query]);
-
-  const handleSelect = (suggestion: GeocodeSuggestion) => {
-    setSuggestions([]);
-    setQuery(suggestion.label);
-    router.push(
-      toExploreUrl({
-        label: suggestion.label,
-        coordinates: suggestion.coordinates,
-      })
-    );
-  };
-
-  const handleSearchSubmit = async () => {
-    if (!query.trim()) return;
-    if (!hasToken) {
-      setSearchError("Add NEXT_PUBLIC_MAPBOX_TOKEN (or NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN) to enable live search.");
-      return;
-    }
-
-    setIsSearching(true);
-    setSearchError(null);
-    try {
-      const result = await fetchFirstGeocodeResult(query, MAPBOX_TOKEN);
-      if (!result) {
-        setSearchError("No location results found for this query.");
-        return;
-      }
-      handleSelect(result);
-    } catch {
-      setSearchError("Search failed. Check token scope and retry.");
-    } finally {
-      setIsSearching(false);
-    }
-  };
 
   return (
     <div className="relative min-h-screen bg-background text-foreground overflow-hidden">
@@ -219,17 +225,27 @@ export default function LandingHero() {
             Search a place and transition into the Ground Truth 3D risk grid experience.
           </p>
 
-          <SearchBar
-            query={query}
-            loading={isSearching}
-            suggestions={suggestions}
-            onQueryChange={(value) => {
-              setQuery(value);
-              setSearchError(null);
-            }}
-            onSubmit={handleSearchSubmit}
-            onSuggestionSelect={handleSelect}
-          />
+          <div className="w-full max-w-2xl mx-auto pointer-events-auto gt-searchbox-wrap">
+            {hasToken ? (
+              <SearchBox
+                accessToken={MAPBOX_TOKEN}
+                placeholder="Search a city, address, or place..."
+                options={{
+                  language: "en",
+                  limit: 6,
+                  types: SEARCH_TYPES,
+                }}
+                onChange={() => {
+                  setSearchError(null);
+                }}
+                onSuggestError={() => {
+                  setSearchError("Search failed. Check token scope and retry.");
+                }}
+                onRetrieve={handleRetrieve}
+                interceptSearch={(value) => value.trim()}
+              />
+            ) : null}
+          </div>
 
           <div className="mt-5 min-h-6">
             {searchError ? (
@@ -254,13 +270,16 @@ export default function LandingHero() {
               <p className="text-sm text-slate-300/80">
                 Add <code className="gt-inline-code">NEXT_PUBLIC_MAPBOX_TOKEN</code> for live Mapbox rendering and search.
               </p>
+            ) : isTransitioning ? (
+              <p className="text-xs text-slate-300/85">Transitioning to map view...</p>
             ) : (
-              <p className="text-xs text-slate-400/80">Press Enter to search and open the 3D grid page.</p>
+              <p className="text-xs text-slate-400/80">Pick a search result to fly into the map.</p>
             )}
             <button
               type="button"
               className="gt-demo-button"
-              onClick={() => router.push(toExploreUrl(DEMO_LOCATION))}
+              onClick={() => transitionToExplore(DEMO_LOCATION)}
+              disabled={isTransitioning}
             >
               Launch Demo Grid Scene
             </button>

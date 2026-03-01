@@ -12,6 +12,7 @@
     "lint": "eslint . --ignore-pattern \"convex/_generated/**\""
   },
   "dependencies": {
+    "@mapbox/search-js-react": "^1.5.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.31.7",

@@ -291,6 +291,15 @@
   box-shadow: 0 14px 45px rgba(2, 6, 23, 0.45);
 }
 
+.gt-searchbox-wrap {
+  width: 100%;
+}
+
+.gt-searchbox-wrap mapbox-search-box {
+  width: 100%;
+  display: block;
+}
+
 .gt-search-button {
   display: inline-flex;
   align-items: center;

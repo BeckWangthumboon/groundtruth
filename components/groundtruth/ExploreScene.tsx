@@ -2,54 +2,26 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { SearchBoxRetrieveResponse } from "@mapbox/search-js-core";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { AlertCircle, ChevronLeft, Layers3 } from "lucide-react";
-import SearchBar from "@/components/groundtruth/SearchBar";
 import { hasMapboxToken, MAPBOX_TOKEN, MAP_STYLE_GRID } from "@/lib/groundtruth/config";
-import { fetchFirstGeocodeResult, fetchGeocodingSuggestions } from "@/lib/groundtruth/geocode";
+import { DEMO_LOCATION, parseLocationFromSearchParams, toExploreUrl } from "@/lib/groundtruth/location";
 import { animateRiskLayers, drawRiskLayers, GT_LAYER_IDS } from "@/lib/groundtruth/map-layers";
 import { buildRiskGrid } from "@/lib/groundtruth/risk-grid";
-import { GeocodeSuggestion, LocationSelection, RiskGridData } from "@/lib/groundtruth/types";
+import { toLocationFromSearchBoxRetrieve } from "@/lib/groundtruth/searchbox";
+import { LocationSelection, RiskGridData } from "@/lib/groundtruth/types";
 
-const DEMO_LOCATION: LocationSelection = {
-  label: "Downtown Atlanta, Georgia",
-  coordinates: [-84.38798, 33.74876],
-};
+const SEARCH_TYPES = "country,region,postcode,district,place,locality,neighborhood,street,address";
+const SearchBox = dynamic(() => import("@mapbox/search-js-react").then((mod) => mod.SearchBox), { ssr: false });
+
+type CameraMode = "initial" | "fly";
 
 function formatPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
-}
-
-function parseLocation(searchParams: URLSearchParams): LocationSelection {
-  const lat = Number(searchParams.get("lat"));
-  const lng = Number(searchParams.get("lng"));
-  const label = searchParams.get("q");
-
-  if (Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
-    return {
-      label: label?.trim() || `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-      coordinates: [lng, lat],
-    };
-  }
-
-  return DEMO_LOCATION;
-}
-
-function toLocationKey(location: LocationSelection): string {
-  const [lng, lat] = location.coordinates;
-  return `${lat.toFixed(6)}:${lng.toFixed(6)}`;
-}
-
-function toExploreUrl(location: LocationSelection): string {
-  const [lng, lat] = location.coordinates;
-  const params = new URLSearchParams({
-    q: location.label,
-    lat: lat.toFixed(6),
-    lng: lng.toFixed(6),
-  });
-  return `/explore?${params.toString()}`;
 }
 
 function isAuthError(message: string): boolean {
@@ -63,13 +35,10 @@ export default function ExploreScene() {
   const hasToken = hasMapboxToken();
 
   const urlLocation = useMemo(
-    () => parseLocation(new URLSearchParams(searchParams.toString())),
+    () => parseLocationFromSearchParams(new URLSearchParams(searchParams.toString())),
     [searchParams]
   );
 
-  const [query, setQuery] = useState(urlLocation.label);
-  const [suggestions, setSuggestions] = useState<GeocodeSuggestion[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<LocationSelection>(urlLocation);
@@ -81,7 +50,6 @@ export default function ExploreScene() {
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const stopRiskAnimationRef = useRef<(() => void) | null>(null);
-  const currentLocationKeyRef = useRef<string>("");
   const selectedLocationRef = useRef<LocationSelection>(selectedLocation);
 
   useEffect(() => {
@@ -89,7 +57,7 @@ export default function ExploreScene() {
   }, [selectedLocation]);
 
   const applyLocation = useCallback(
-    (location: LocationSelection, syncUrl: boolean) => {
+    (location: LocationSelection, syncUrl: boolean, cameraMode: CameraMode = "fly") => {
       const nextGrid = buildRiskGrid(location.coordinates);
       const map = mapRef.current;
 
@@ -97,7 +65,6 @@ export default function ExploreScene() {
       setRiskGrid(nextGrid);
       setSearchError(null);
       setMapError(null);
-      currentLocationKeyRef.current = toLocationKey(location);
 
       if (syncUrl) {
         router.replace(toExploreUrl(location), { scroll: false });
@@ -117,6 +84,17 @@ export default function ExploreScene() {
       const renderGrid = () => {
         drawRiskLayers(map, nextGrid);
         stopRiskAnimationRef.current = animateRiskLayers(map, nextGrid);
+
+        if (cameraMode === "initial") {
+          map.jumpTo({
+            center: location.coordinates,
+            zoom: 14,
+            pitch: 58,
+            bearing: -36,
+          });
+          return;
+        }
+
         map.flyTo({
           center: location.coordinates,
           zoom: 14,
@@ -138,12 +116,18 @@ export default function ExploreScene() {
     [router]
   );
 
-  useEffect(() => {
-    setQuery(urlLocation.label);
-    const key = toLocationKey(urlLocation);
-    if (key === currentLocationKeyRef.current) return;
-    applyLocation(urlLocation, false);
-  }, [applyLocation, urlLocation]);
+  const handleRetrieve = useCallback(
+    (result: SearchBoxRetrieveResponse) => {
+      const location = toLocationFromSearchBoxRetrieve(result);
+      if (!location) {
+        setSearchError("No location results found for this query.");
+        return;
+      }
+
+      applyLocation(location, true, "fly");
+    },
+    [applyLocation]
+  );
 
   useEffect(() => {
     if (!hasToken || !mapContainerRef.current || mapRef.current) return;
@@ -176,7 +160,7 @@ export default function ExploreScene() {
     map.on("load", () => {
       mapLoadedRef.current = true;
       setMapError(null);
-      applyLocation(selectedLocationRef.current, false);
+      applyLocation(selectedLocationRef.current, false, "initial");
     });
 
     map.on("error", (event) => {
@@ -244,64 +228,6 @@ export default function ExploreScene() {
     };
   }, [applyLocation, hasToken]);
 
-  useEffect(() => {
-    if (!hasToken) return;
-    if (query.trim().length < 2) {
-      setSuggestions([]);
-      return;
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(async () => {
-      try {
-        const results = await fetchGeocodingSuggestions(query, MAPBOX_TOKEN, controller.signal);
-        setSuggestions(results);
-      } catch {
-        setSuggestions([]);
-      }
-    }, 170);
-
-    return () => {
-      controller.abort();
-      clearTimeout(timeout);
-    };
-  }, [hasToken, query]);
-
-  const handleSuggestionSelect = (suggestion: GeocodeSuggestion) => {
-    setSuggestions([]);
-    setQuery(suggestion.label);
-    applyLocation(
-      {
-        label: suggestion.label,
-        coordinates: suggestion.coordinates,
-      },
-      true
-    );
-  };
-
-  const handleSearchSubmit = async () => {
-    if (!query.trim()) return;
-    if (!hasToken) {
-      setSearchError("Add NEXT_PUBLIC_MAPBOX_TOKEN (or NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN) to enable live search.");
-      return;
-    }
-
-    setIsSearching(true);
-    setSearchError(null);
-    try {
-      const result = await fetchFirstGeocodeResult(query, MAPBOX_TOKEN);
-      if (!result) {
-        setSearchError("No location results found for this query.");
-        return;
-      }
-      handleSuggestionSelect(result);
-    } catch {
-      setSearchError("Search failed. Check token scope and retry.");
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
   const summaryRows = useMemo(
     () => [
       { label: "Average risk", value: formatPercent(riskGrid.summary.averageRisk) },
@@ -340,17 +266,28 @@ export default function ExploreScene() {
           <section className="w-full max-w-3xl space-y-4 md:absolute md:top-0 md:left-0">
             <article className="gt-panel pointer-events-auto">
               <p className="gt-kicker mb-3">Search</p>
-              <SearchBar
-                query={query}
-                loading={isSearching}
-                suggestions={suggestions}
-                onQueryChange={(value) => {
-                  setQuery(value);
-                  setSearchError(null);
-                }}
-                onSubmit={handleSearchSubmit}
-                onSuggestionSelect={handleSuggestionSelect}
-              />
+
+              <div className="gt-searchbox-wrap">
+                {hasToken ? (
+                  <SearchBox
+                    accessToken={MAPBOX_TOKEN}
+                    placeholder="Search a city, address, or place..."
+                    options={{
+                      language: "en",
+                      limit: 6,
+                      types: SEARCH_TYPES,
+                    }}
+                    onChange={() => {
+                      setSearchError(null);
+                    }}
+                    onSuggestError={() => {
+                      setSearchError("Search failed. Check token scope and retry.");
+                    }}
+                    onRetrieve={handleRetrieve}
+                    interceptSearch={(value) => value.trim()}
+                  />
+                ) : null}
+              </div>
 
               <div className="mt-4 min-h-6">
                 {searchError ? (
@@ -375,7 +312,7 @@ export default function ExploreScene() {
                   <button
                     type="button"
                     className="gt-demo-button"
-                    onClick={() => applyLocation(DEMO_LOCATION, true)}
+                    onClick={() => applyLocation(DEMO_LOCATION, true, "fly")}
                   >
                     Show Demo Grid
                   </button>
@@ -408,7 +345,6 @@ export default function ExploreScene() {
               </div>
             </article>
           </section>
-
         </div>
       </main>
     </div>

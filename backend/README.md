@@ -9,7 +9,7 @@ uv run uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
 
 ## Endpoint
 
-- `GET /api/census/by-point?lat=<LAT>&lon=<LON>&acs=latest`
+- `GET /api/census/by-point?lat=<LAT>&lon=<LON>&acs=latest&include_parents=true`
 
 Example:
 

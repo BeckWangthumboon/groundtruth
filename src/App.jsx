@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import mapboxgl from 'mapbox-gl'
 import { SearchBox } from '@mapbox/search-js-react'
-import { Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 
 import { AnalysisLoadingOverlay } from './components/AnalysisLoadingOverlay'
 import { CensusDataPanel } from './components/CensusDataPanel'
@@ -207,6 +207,7 @@ function App() {
   const [censusData, setCensusData] = useState(null)
   const [censusErrorMessage, setCensusErrorMessage] = useState('')
   const [censusLocationLabel, setCensusLocationLabel] = useState('')
+  const [isCensusPanelCollapsed, setIsCensusPanelCollapsed] = useState(false)
 
   const censusMutation = useMutation({
     mutationFn: fetchCensusByPoint,
@@ -536,6 +537,12 @@ function App() {
   const showAnalysisOverlay = isLookupInProgress && !isZoomTransitioning
   const showCensusPanel = censusStatus === 'success' || censusStatus === 'error'
 
+  useEffect(() => {
+    if (!showCensusPanel) {
+      setIsCensusPanelCollapsed(false)
+    }
+  }, [showCensusPanel])
+
   return (
     <div
       className={`app-shell${hasSearched ? ' app-shell--searched' : ''}${
@@ -551,13 +558,33 @@ function App() {
         <AnalysisLoadingOverlay visible={showAnalysisOverlay} />
 
         {showCensusPanel ? (
-          <section className="census-panel-anchor census-panel-anchor--visible">
-            <CensusDataPanel
-              status={censusStatus}
-              data={censusData}
-              errorMessage={censusErrorMessage}
-              locationLabel={censusLocationLabel}
-            />
+          <section
+            className={`census-panel-anchor census-panel-anchor--visible${
+              isCensusPanelCollapsed ? ' census-panel-anchor--collapsed' : ''
+            }`}
+          >
+            <button
+              type="button"
+              className="census-panel-toggle"
+              aria-label={isCensusPanelCollapsed ? 'Expand census panel' : 'Collapse census panel'}
+              onClick={() => setIsCensusPanelCollapsed((prev) => !prev)}
+            >
+              {isCensusPanelCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            </button>
+
+            <div
+              className={`census-panel-shell${
+                isCensusPanelCollapsed ? ' census-panel-shell--hidden' : ''
+              }`}
+              aria-hidden={isCensusPanelCollapsed}
+            >
+              <CensusDataPanel
+                status={censusStatus}
+                data={censusData}
+                errorMessage={censusErrorMessage}
+                locationLabel={censusLocationLabel}
+              />
+            </div>
           </section>
         ) : null}
 

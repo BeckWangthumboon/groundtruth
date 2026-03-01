@@ -1,127 +1,155 @@
-import { CENSUS_SECTION_ORDER, CENSUS_SECTIONS, CENSUS_TABLE_CATALOG, SNAPSHOT_TABLE_IDS } from './censusTableCatalog'
+const SECTION_ORDER = ['demographics', 'economics', 'families', 'housing', 'social']
 
-function toFiniteNumber(value) {
-  const numeric = typeof value === 'number' ? value : Number(value)
-  return Number.isFinite(numeric) ? numeric : null
+function isFiniteNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value)
 }
 
-function isUnavailableValue(estimate, isSentinelNegativeMedian) {
-  if (estimate == null) {
-    return true
-  }
-  if (isSentinelNegativeMedian) {
-    return true
-  }
-  return false
-}
-
-function formatNumber(value) {
-  if (value == null) {
-    return 'n/a'
+function formatNumber(value, maxFractionDigits = 1) {
+  if (!isFiniteNumber(value)) {
+    return 'N/A'
   }
   return value.toLocaleString(undefined, {
-    maximumFractionDigits: Number.isInteger(value) ? 0 : 1,
+    maximumFractionDigits: Number.isInteger(value) ? 0 : maxFractionDigits,
   })
 }
 
-function formatEstimate(value, format) {
-  if (value == null) {
-    return 'n/a'
+function formatEstimate(metric) {
+  const estimate = metric?.estimate
+  if (!isFiniteNumber(estimate)) {
+    return 'N/A'
   }
-  if (format === 'currency') {
-    return `$${formatNumber(value)}`
+
+  switch (metric?.format) {
+    case 'currency':
+      return `$${formatNumber(estimate, 0)}`
+    case 'percent':
+      return `${estimate.toFixed(1)}%`
+    case 'minutes':
+      return `${estimate.toFixed(1)} minutes`
+    default:
+      return formatNumber(estimate, 1)
   }
-  return formatNumber(value)
 }
 
-function formatMarginOfError(value) {
-  if (value == null) {
-    return 'n/a'
-  }
-  return `±${formatNumber(value)}`
-}
-
-function computeConfidence(estimate, marginOfError, unavailable) {
-  if (unavailable || estimate == null || marginOfError == null || estimate <= 0) {
-    return {
-      level: 'Low',
-      ratio: null,
-    }
-  }
-
-  const ratio = Math.abs(marginOfError) / Math.abs(estimate)
-  if (ratio <= 0.1) {
-    return { level: 'High', ratio }
-  }
-  if (ratio <= 0.25) {
-    return { level: 'Medium', ratio }
-  }
-  return { level: 'Low', ratio }
-}
-
-function computeFillPct(estimate, unavailable, contextRange) {
-  if (unavailable || estimate == null || !contextRange) {
+function formatMoe(metric) {
+  const moe = metric?.moe
+  if (!isFiniteNumber(moe)) {
     return null
   }
-  const [min, max] = contextRange
-  if (max === min) return null
-  return Math.max(0, Math.min(1, (estimate - min) / (max - min))) * 100
+
+  if (metric?.format === 'currency') {
+    return `±$${formatNumber(moe, 0)}`
+  }
+  if (metric?.format === 'percent') {
+    return `±${moe.toFixed(1)}%`
+  }
+  if (metric?.format === 'minutes') {
+    return `±${moe.toFixed(1)} min`
+  }
+  return `±${formatNumber(moe, 1)}`
 }
 
-function buildRowModel(tableId, catalogEntry, byTable) {
-  const raw = byTable?.[tableId]
-  const estimate = toFiniteNumber(raw?.estimate)
-  const marginOfError = toFiniteNumber(raw?.margin_of_error)
-  const isSentinelNegativeMedian = Boolean(raw?.is_sentinel_negative_median)
-  const unavailable = isUnavailableValue(estimate, isSentinelNegativeMedian)
-  const confidence = computeConfidence(estimate, marginOfError, unavailable)
-  const fillPct = computeFillPct(estimate, unavailable, catalogEntry.contextRange)
+function formatAreaSqMiles(value) {
+  if (!isFiniteNumber(value)) {
+    return 'N/A'
+  }
+  if (value < 0.1) {
+    return `${value.toFixed(2)} sq mi`
+  }
+  return `${value.toFixed(1)} sq mi`
+}
+
+function formatDensity(value) {
+  if (!isFiniteNumber(value)) {
+    return 'N/A'
+  }
+  return `${formatNumber(value, 1)} people / sq mi`
+}
+
+function buildProfileModel(data) {
+  const profileSummary = data?.derived?.profile_summary ?? {}
+  const release = data?.release
+  const hierarchy = Array.isArray(profileSummary?.hierarchy) ? profileSummary.hierarchy : []
+
+  const hierarchyLine = hierarchy
+    .map((entry) => entry?.name)
+    .filter(Boolean)
+    .join(', ')
 
   return {
-    tableId,
-    label: catalogEntry.label,
-    section: catalogEntry.section,
-    priority: catalogEntry.priority,
-    estimate,
-    marginOfError,
-    isSentinelNegativeMedian,
-    unavailable,
-    estimateText: unavailable ? 'n/a' : formatEstimate(estimate, catalogEntry.format),
-    marginOfErrorText: unavailable ? null : formatMarginOfError(marginOfError),
-    confidence,
-    fillPct,
+    tractName: profileSummary?.tract_name || data?.tract?.geocoder_tract_record?.NAME || 'Census profile',
+    hierarchyLine,
+    populationText: formatNumber(profileSummary?.population, 0),
+    areaText: formatAreaSqMiles(profileSummary?.area_sq_miles),
+    densityText: formatDensity(profileSummary?.density_per_sq_mile),
+    releaseText:
+      release?.name || (release?.id ? `Census data: ${release.id}` : 'Census data: ACS 5-year estimates'),
+  }
+}
+
+function normalizeMetric(metric) {
+  const comparisons = Array.isArray(metric?.comparisons)
+    ? metric.comparisons.map((line) => line?.line).filter(Boolean)
+    : []
+
+  return {
+    id: metric?.id || '',
+    label: metric?.label || 'Metric',
+    estimate: metric?.estimate,
+    format: metric?.format || 'number',
+    estimateText: formatEstimate(metric),
+    moeText: formatMoe(metric),
+    moeRatio: isFiniteNumber(metric?.moe_ratio) ? metric.moe_ratio : null,
+    highMoe: Boolean(metric?.high_moe),
+    universe: metric?.universe || null,
+    comparisons,
+  }
+}
+
+function normalizeChart(chart) {
+  const series = Array.isArray(chart?.series)
+    ? chart.series.map((entry) => ({
+        label: entry?.label || 'Value',
+        valuePct: isFiniteNumber(entry?.value_pct) ? entry.value_pct : null,
+        count: isFiniteNumber(entry?.count) ? entry.count : null,
+      }))
+    : []
+
+  return {
+    id: chart?.id || '',
+    label: chart?.label || 'Chart',
+    type: chart?.type || 'bar',
+    universe: chart?.universe || null,
+    note: chart?.note || null,
+    series,
   }
 }
 
 export function buildCensusDisplayModel(data) {
-  const byTable = data?.data_interpreted?.by_table || {}
+  const sectionsRaw = Array.isArray(data?.derived?.sections) ? data.derived.sections : []
 
-  const allRows = Object.entries(CENSUS_TABLE_CATALOG).map(([tableId, catalogEntry]) =>
-    buildRowModel(tableId, catalogEntry, byTable)
-  )
+  const orderedSections = [...sectionsRaw].sort((a, b) => {
+    const idxA = SECTION_ORDER.indexOf(a?.id)
+    const idxB = SECTION_ORDER.indexOf(b?.id)
+    const rankA = idxA === -1 ? Number.MAX_SAFE_INTEGER : idxA
+    const rankB = idxB === -1 ? Number.MAX_SAFE_INTEGER : idxB
+    return rankA - rankB
+  })
 
-  const snapshotCards = SNAPSHOT_TABLE_IDS.map((tableId) => allRows.find((row) => row.tableId === tableId)).filter(
-    Boolean
-  )
-
-  const sections = CENSUS_SECTION_ORDER.map((sectionId) => {
-    const sectionMeta = CENSUS_SECTIONS[sectionId]
-    const rows = allRows
-      .filter((row) => row.section === sectionId)
-      .sort((a, b) => a.priority - b.priority || a.label.localeCompare(b.label))
-
+  const sections = orderedSections.map((section) => {
+    const metrics = (Array.isArray(section?.metrics) ? section.metrics : []).map(normalizeMetric)
+    const charts = (Array.isArray(section?.charts) ? section.charts : []).map(normalizeChart)
     return {
-      id: sectionId,
-      title: sectionMeta.title,
-      shortTitle: sectionMeta.shortTitle,
-      color: sectionMeta.color,
-      iconName: sectionMeta.iconName,
-      rows,
+      id: section?.id || 'section',
+      title: section?.title || 'Section',
+      metrics,
+      charts,
+      hasHighMoe: metrics.some((metric) => metric.highMoe),
     }
-  }).filter((section) => section.rows.length > 0)
+  })
 
   return {
-    snapshotCards,
+    profile: buildProfileModel(data),
     sections,
   }
 }

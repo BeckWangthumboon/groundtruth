@@ -1,0 +1,1236 @@
+{
+  "meta": {
+    "effective_radius_m": 5000,
+    "lat": 43.074,
+    "lon": -89.384,
+    "max_discovery_radius_m": 5000,
+    "overpass_endpoint": "https://overpass-api.de/api/interpreter",
+    "radius_was_clamped": true,
+    "requested_radius_m": 8000,
+    "top_limit": 0,
+    "total_elements": 6952,
+    "ts": 1772358035
+  },
+  "tag_summary": {
+    "amenity": {
+      "distinct_values": 101,
+      "tagged_elements": 4410,
+      "values": [
+        {
+          "count": 1295,
+          "value": "parking"
+        },
+        {
+          "count": 611,
+          "value": "bicycle_parking"
+        },
+        {
+          "count": 453,
+          "value": "bench"
+        },
+        {
+          "count": 249,
+          "value": "parking_entrance"
+        },
+        {
+          "count": 223,
+          "value": "restaurant"
+        },
+        {
+          "count": 171,
+          "value": "parking_space"
+        },
+        {
+          "count": 78,
+          "value": "waste_basket"
+        },
+        {
+          "count": 77,
+          "value": "fast_food"
+        },
+        {
+          "count": 76,
+          "value": "bicycle_rental"
+        },
+        {
+          "count": 74,
+          "value": "cafe"
+        },
+        {
+          "count": 73,
+          "value": "bar"
+        },
+        {
+          "count": 73,
+          "value": "shelter"
+        },
+        {
+          "count": 67,
+          "value": "toilets"
+        },
+        {
+          "count": 61,
+          "value": "drinking_water"
+        },
+        {
+          "count": 56,
+          "value": "place_of_worship"
+        },
+        {
+          "count": 52,
+          "value": "post_box"
+        },
+        {
+          "count": 40,
+          "value": "waste_disposal"
+        },
+        {
+          "count": 36,
+          "value": "public_bookcase"
+        },
+        {
+          "count": 36,
+          "value": "school"
+        },
+        {
+          "count": 33,
+          "value": "bank"
+        },
+        {
+          "count": 32,
+          "value": "pub"
+        },
+        {
+          "count": 29,
+          "value": "bicycle_repair_station"
+        },
+        {
+          "count": 26,
+          "value": "fraternity"
+        },
+        {
+          "count": 26,
+          "value": "fuel"
+        },
+        {
+          "count": 24,
+          "value": "recycling"
+        },
+        {
+          "count": 23,
+          "value": "social_facility"
+        },
+        {
+          "count": 22,
+          "value": "vending_machine"
+        },
+        {
+          "count": 21,
+          "value": "community_centre"
+        },
+        {
+          "count": 20,
+          "value": "motorcycle_parking"
+        },
+        {
+          "count": 20,
+          "value": "theatre"
+        },
+        {
+          "count": 18,
+          "value": "atm"
+        },
+        {
+          "count": 18,
+          "value": "clinic"
+        },
+        {
+          "count": 16,
+          "value": "library"
+        },
+        {
+          "count": 16,
+          "value": "veterinary"
+        },
+        {
+          "count": 14,
+          "value": "fountain"
+        },
+        {
+          "count": 14,
+          "value": "letter_box"
+        },
+        {
+          "count": 13,
+          "value": "ice_cream"
+        },
+        {
+          "count": 12,
+          "value": "charging_station"
+        },
+        {
+          "count": 12,
+          "value": "dentist"
+        },
+        {
+          "count": 12,
+          "value": "pharmacy"
+        },
+        {
+          "count": 11,
+          "value": "loading_dock"
+        },
+        {
+          "count": 11,
+          "value": "sorority"
+        },
+        {
+          "count": 9,
+          "value": "marketplace"
+        },
+        {
+          "count": 8,
+          "value": "arts_centre"
+        },
+        {
+          "count": 8,
+          "value": "car_wash"
+        },
+        {
+          "count": 8,
+          "value": "childcare"
+        },
+        {
+          "count": 7,
+          "value": "fire_station"
+        },
+        {
+          "count": 7,
+          "value": "police"
+        },
+        {
+          "count": 7,
+          "value": "post_office"
+        },
+        {
+          "count": 7,
+          "value": "student_accommodation"
+        },
+        {
+          "count": 6,
+          "value": "nightclub"
+        },
+        {
+          "count": 5,
+          "value": "bbq"
+        },
+        {
+          "count": 5,
+          "value": "boat_storage"
+        },
+        {
+          "count": 5,
+          "value": "events_venue"
+        },
+        {
+          "count": 5,
+          "value": "hospital"
+        },
+        {
+          "count": 4,
+          "value": "polling_station"
+        },
+        {
+          "count": 4,
+          "value": "studio"
+        },
+        {
+          "count": 4,
+          "value": "townhall"
+        },
+        {
+          "count": 3,
+          "value": "biergarten"
+        },
+        {
+          "count": 3,
+          "value": "college"
+        },
+        {
+          "count": 3,
+          "value": "conference_centre"
+        },
+        {
+          "count": 3,
+          "value": "courthouse"
+        },
+        {
+          "count": 3,
+          "value": "dojo"
+        },
+        {
+          "count": 3,
+          "value": "social_centre"
+        },
+        {
+          "count": 3,
+          "value": "university"
+        },
+        {
+          "count": 2,
+          "value": "animal_boarding"
+        },
+        {
+          "count": 2,
+          "value": "boat_rental"
+        },
+        {
+          "count": 2,
+          "value": "car_rental"
+        },
+        {
+          "count": 2,
+          "value": "cinema"
+        },
+        {
+          "count": 2,
+          "value": "clock"
+        },
+        {
+          "count": 2,
+          "value": "construction"
+        },
+        {
+          "count": 2,
+          "value": "internet_cafe"
+        },
+        {
+          "count": 2,
+          "value": "music_school"
+        },
+        {
+          "count": 2,
+          "value": "parcel_locker"
+        },
+        {
+          "count": 2,
+          "value": "waste_transfer_station"
+        },
+        {
+          "count": 1,
+          "value": "animal_shelter"
+        },
+        {
+          "count": 1,
+          "value": "baking_oven"
+        },
+        {
+          "count": 1,
+          "value": "bus_station"
+        },
+        {
+          "count": 1,
+          "value": "car_sharing"
+        },
+        {
+          "count": 1,
+          "value": "compressed_air"
+        },
+        {
+          "count": 1,
+          "value": "coworking_space"
+        },
+        {
+          "count": 1,
+          "value": "doctors"
+        },
+        {
+          "count": 1,
+          "value": "dressing_room"
+        },
+        {
+          "count": 1,
+          "value": "food_court"
+        },
+        {
+          "count": 1,
+          "value": "fridge"
+        },
+        {
+          "count": 1,
+          "value": "give_box"
+        },
+        {
+          "count": 1,
+          "value": "grit_bin"
+        },
+        {
+          "count": 1,
+          "value": "kindergarten"
+        },
+        {
+          "count": 1,
+          "value": "kitchen"
+        },
+        {
+          "count": 1,
+          "value": "language_school"
+        },
+        {
+          "count": 1,
+          "value": "moped_parking"
+        },
+        {
+          "count": 1,
+          "value": "payment_terminal"
+        },
+        {
+          "count": 1,
+          "value": "post_depot"
+        },
+        {
+          "count": 1,
+          "value": "prison"
+        },
+        {
+          "count": 1,
+          "value": "research_institute"
+        },
+        {
+          "count": 1,
+          "value": "stage"
+        },
+        {
+          "count": 1,
+          "value": "street_vendor"
+        },
+        {
+          "count": 1,
+          "value": "telephone"
+        },
+        {
+          "count": 1,
+          "value": "training"
+        },
+        {
+          "count": 1,
+          "value": "was:restaurant"
+        },
+        {
+          "count": 1,
+          "value": "yacht_club"
+        }
+      ]
+    },
+    "craft": {
+      "distinct_values": 25,
+      "tagged_elements": 38,
+      "values": [
+        {
+          "count": 4,
+          "value": "brewery"
+        },
+        {
+          "count": 4,
+          "value": "plumber"
+        },
+        {
+          "count": 3,
+          "value": "electrician"
+        },
+        {
+          "count": 2,
+          "value": "clockmaker"
+        },
+        {
+          "count": 2,
+          "value": "distillery"
+        },
+        {
+          "count": 2,
+          "value": "electronics_repair"
+        },
+        {
+          "count": 2,
+          "value": "photographer"
+        },
+        {
+          "count": 2,
+          "value": "pottery"
+        },
+        {
+          "count": 1,
+          "value": "caterer"
+        },
+        {
+          "count": 1,
+          "value": "cleaning"
+        },
+        {
+          "count": 1,
+          "value": "confectionery"
+        },
+        {
+          "count": 1,
+          "value": "floorer"
+        },
+        {
+          "count": 1,
+          "value": "furniture_maker"
+        },
+        {
+          "count": 1,
+          "value": "glassblower"
+        },
+        {
+          "count": 1,
+          "value": "glaziery"
+        },
+        {
+          "count": 1,
+          "value": "jeweller"
+        },
+        {
+          "count": 1,
+          "value": "leather;shoemaker"
+        },
+        {
+          "count": 1,
+          "value": "locksmith"
+        },
+        {
+          "count": 1,
+          "value": "painter"
+        },
+        {
+          "count": 1,
+          "value": "pest_control"
+        },
+        {
+          "count": 1,
+          "value": "printer"
+        },
+        {
+          "count": 1,
+          "value": "printery"
+        },
+        {
+          "count": 1,
+          "value": "security"
+        },
+        {
+          "count": 1,
+          "value": "shoemaker"
+        },
+        {
+          "count": 1,
+          "value": "upholsterer"
+        }
+      ]
+    },
+    "leisure": {
+      "distinct_values": 31,
+      "tagged_elements": 1448,
+      "values": [
+        {
+          "count": 529,
+          "value": "garden"
+        },
+        {
+          "count": 252,
+          "value": "pitch"
+        },
+        {
+          "count": 151,
+          "value": "park"
+        },
+        {
+          "count": 137,
+          "value": "playground"
+        },
+        {
+          "count": 121,
+          "value": "picnic_table"
+        },
+        {
+          "count": 66,
+          "value": "outdoor_seating"
+        },
+        {
+          "count": 40,
+          "value": "swimming_pool"
+        },
+        {
+          "count": 23,
+          "value": "bleachers"
+        },
+        {
+          "count": 21,
+          "value": "fitness_centre"
+        },
+        {
+          "count": 21,
+          "value": "slipway"
+        },
+        {
+          "count": 14,
+          "value": "sports_centre"
+        },
+        {
+          "count": 10,
+          "value": "firepit"
+        },
+        {
+          "count": 10,
+          "value": "nature_reserve"
+        },
+        {
+          "count": 7,
+          "value": "ice_rink"
+        },
+        {
+          "count": 7,
+          "value": "swimming_area"
+        },
+        {
+          "count": 6,
+          "value": "track"
+        },
+        {
+          "count": 5,
+          "value": "fitness_station"
+        },
+        {
+          "count": 4,
+          "value": "amusement_arcade"
+        },
+        {
+          "count": 4,
+          "value": "marina"
+        },
+        {
+          "count": 3,
+          "value": "dog_park"
+        },
+        {
+          "count": 3,
+          "value": "golf_course"
+        },
+        {
+          "count": 3,
+          "value": "stadium"
+        },
+        {
+          "count": 2,
+          "value": "hackerspace"
+        },
+        {
+          "count": 2,
+          "value": "schoolyard"
+        },
+        {
+          "count": 1,
+          "value": "bowling_alley"
+        },
+        {
+          "count": 1,
+          "value": "common"
+        },
+        {
+          "count": 1,
+          "value": "escape_game"
+        },
+        {
+          "count": 1,
+          "value": "sauna"
+        },
+        {
+          "count": 1,
+          "value": "sports_hall"
+        },
+        {
+          "count": 1,
+          "value": "trampoline_park"
+        },
+        {
+          "count": 1,
+          "value": "water_park"
+        }
+      ]
+    },
+    "office": {
+      "distinct_values": 31,
+      "tagged_elements": 321,
+      "values": [
+        {
+          "count": 183,
+          "value": "government"
+        },
+        {
+          "count": 25,
+          "value": "association"
+        },
+        {
+          "count": 16,
+          "value": "yes"
+        },
+        {
+          "count": 12,
+          "value": "company"
+        },
+        {
+          "count": 11,
+          "value": "estate_agent"
+        },
+        {
+          "count": 10,
+          "value": "ngo"
+        },
+        {
+          "count": 7,
+          "value": "lawyer"
+        },
+        {
+          "count": 6,
+          "value": "architect"
+        },
+        {
+          "count": 6,
+          "value": "insurance"
+        },
+        {
+          "count": 6,
+          "value": "tax_advisor"
+        },
+        {
+          "count": 5,
+          "value": "advertising_agency"
+        },
+        {
+          "count": 5,
+          "value": "educational_institution"
+        },
+        {
+          "count": 3,
+          "value": "foundation"
+        },
+        {
+          "count": 3,
+          "value": "research"
+        },
+        {
+          "count": 2,
+          "value": "coworking"
+        },
+        {
+          "count": 2,
+          "value": "employment_agency"
+        },
+        {
+          "count": 2,
+          "value": "it"
+        },
+        {
+          "count": 2,
+          "value": "moving_company"
+        },
+        {
+          "count": 2,
+          "value": "political_party"
+        },
+        {
+          "count": 2,
+          "value": "property_management"
+        },
+        {
+          "count": 1,
+          "value": "accountant"
+        },
+        {
+          "count": 1,
+          "value": "construction_company"
+        },
+        {
+          "count": 1,
+          "value": "energy_supplier"
+        },
+        {
+          "count": 1,
+          "value": "financial_advisor"
+        },
+        {
+          "count": 1,
+          "value": "forestry"
+        },
+        {
+          "count": 1,
+          "value": "graphic_design"
+        },
+        {
+          "count": 1,
+          "value": "guide"
+        },
+        {
+          "count": 1,
+          "value": "newspaper"
+        },
+        {
+          "count": 1,
+          "value": "telecommunication"
+        },
+        {
+          "count": 1,
+          "value": "therapist"
+        },
+        {
+          "count": 1,
+          "value": "water_utility"
+        }
+      ]
+    },
+    "shop": {
+      "distinct_values": 97,
+      "tagged_elements": 478,
+      "values": [
+        {
+          "count": 43,
+          "value": "convenience"
+        },
+        {
+          "count": 33,
+          "value": "hairdresser"
+        },
+        {
+          "count": 22,
+          "value": "car_repair"
+        },
+        {
+          "count": 22,
+          "value": "clothes"
+        },
+        {
+          "count": 16,
+          "value": "bicycle"
+        },
+        {
+          "count": 16,
+          "value": "car"
+        },
+        {
+          "count": 15,
+          "value": "alcohol"
+        },
+        {
+          "count": 15,
+          "value": "gift"
+        },
+        {
+          "count": 14,
+          "value": "bakery"
+        },
+        {
+          "count": 14,
+          "value": "cannabis"
+        },
+        {
+          "count": 14,
+          "value": "supermarket"
+        },
+        {
+          "count": 13,
+          "value": "jewelry"
+        },
+        {
+          "count": 13,
+          "value": "vacant"
+        },
+        {
+          "count": 11,
+          "value": "beauty"
+        },
+        {
+          "count": 11,
+          "value": "tattoo"
+        },
+        {
+          "count": 9,
+          "value": "books"
+        },
+        {
+          "count": 8,
+          "value": "massage"
+        },
+        {
+          "count": 8,
+          "value": "mobile_phone"
+        },
+        {
+          "count": 7,
+          "value": "copyshop"
+        },
+        {
+          "count": 6,
+          "value": "florist"
+        },
+        {
+          "count": 5,
+          "value": "chemist"
+        },
+        {
+          "count": 5,
+          "value": "confectionery"
+        },
+        {
+          "count": 5,
+          "value": "farm"
+        },
+        {
+          "count": 5,
+          "value": "money_lender"
+        },
+        {
+          "count": 5,
+          "value": "optician"
+        },
+        {
+          "count": 5,
+          "value": "pet"
+        },
+        {
+          "count": 5,
+          "value": "sports"
+        },
+        {
+          "count": 4,
+          "value": "butcher"
+        },
+        {
+          "count": 4,
+          "value": "charity"
+        },
+        {
+          "count": 4,
+          "value": "dry_cleaning"
+        },
+        {
+          "count": 4,
+          "value": "e-cigarette"
+        },
+        {
+          "count": 4,
+          "value": "hardware"
+        },
+        {
+          "count": 4,
+          "value": "laundry"
+        },
+        {
+          "count": 4,
+          "value": "music"
+        },
+        {
+          "count": 4,
+          "value": "second_hand"
+        },
+        {
+          "count": 4,
+          "value": "storage_rental"
+        },
+        {
+          "count": 3,
+          "value": "art"
+        },
+        {
+          "count": 3,
+          "value": "chocolate"
+        },
+        {
+          "count": 3,
+          "value": "frame"
+        },
+        {
+          "count": 3,
+          "value": "furniture"
+        },
+        {
+          "count": 3,
+          "value": "hifi"
+        },
+        {
+          "count": 3,
+          "value": "medical_supply"
+        },
+        {
+          "count": 3,
+          "value": "pet_grooming"
+        },
+        {
+          "count": 3,
+          "value": "yes"
+        },
+        {
+          "count": 2,
+          "value": "antiques"
+        },
+        {
+          "count": 2,
+          "value": "bed"
+        },
+        {
+          "count": 2,
+          "value": "boat"
+        },
+        {
+          "count": 2,
+          "value": "cheese"
+        },
+        {
+          "count": 2,
+          "value": "computer"
+        },
+        {
+          "count": 2,
+          "value": "craft"
+        },
+        {
+          "count": 2,
+          "value": "deli"
+        },
+        {
+          "count": 2,
+          "value": "department_store"
+        },
+        {
+          "count": 2,
+          "value": "erotic"
+        },
+        {
+          "count": 2,
+          "value": "funeral_directors"
+        },
+        {
+          "count": 2,
+          "value": "garden_centre"
+        },
+        {
+          "count": 2,
+          "value": "interior_decoration"
+        },
+        {
+          "count": 2,
+          "value": "shoes"
+        },
+        {
+          "count": 2,
+          "value": "spices"
+        },
+        {
+          "count": 2,
+          "value": "tea"
+        },
+        {
+          "count": 2,
+          "value": "tobacco"
+        },
+        {
+          "count": 2,
+          "value": "toys"
+        },
+        {
+          "count": 2,
+          "value": "trade"
+        },
+        {
+          "count": 2,
+          "value": "variety_store"
+        },
+        {
+          "count": 2,
+          "value": "wine"
+        },
+        {
+          "count": 1,
+          "value": "baby_goods"
+        },
+        {
+          "count": 1,
+          "value": "books;gift"
+        },
+        {
+          "count": 1,
+          "value": "car_parts"
+        },
+        {
+          "count": 1,
+          "value": "carpet"
+        },
+        {
+          "count": 1,
+          "value": "collector"
+        },
+        {
+          "count": 1,
+          "value": "cosmetics"
+        },
+        {
+          "count": 1,
+          "value": "doityourself"
+        },
+        {
+          "count": 1,
+          "value": "electronics"
+        },
+        {
+          "count": 1,
+          "value": "esoteric"
+        },
+        {
+          "count": 1,
+          "value": "flooring"
+        },
+        {
+          "count": 1,
+          "value": "food"
+        },
+        {
+          "count": 1,
+          "value": "games"
+        },
+        {
+          "count": 1,
+          "value": "herbalist"
+        },
+        {
+          "count": 1,
+          "value": "homebrewing"
+        },
+        {
+          "count": 1,
+          "value": "household_linen"
+        },
+        {
+          "count": 1,
+          "value": "houseware"
+        },
+        {
+          "count": 1,
+          "value": "locksmith"
+        },
+        {
+          "count": 1,
+          "value": "mall"
+        },
+        {
+          "count": 1,
+          "value": "motorcycle_repair"
+        },
+        {
+          "count": 1,
+          "value": "musical_instrument"
+        },
+        {
+          "count": 1,
+          "value": "outdoor"
+        },
+        {
+          "count": 1,
+          "value": "paint"
+        },
+        {
+          "count": 1,
+          "value": "pastry"
+        },
+        {
+          "count": 1,
+          "value": "piercing"
+        },
+        {
+          "count": 1,
+          "value": "printing"
+        },
+        {
+          "count": 1,
+          "value": "rental"
+        },
+        {
+          "count": 1,
+          "value": "tailor"
+        },
+        {
+          "count": 1,
+          "value": "travel_agency"
+        },
+        {
+          "count": 1,
+          "value": "tyres"
+        },
+        {
+          "count": 1,
+          "value": "video"
+        },
+        {
+          "count": 1,
+          "value": "video_games"
+        },
+        {
+          "count": 1,
+          "value": "watches"
+        },
+        {
+          "count": 1,
+          "value": "wool"
+        }
+      ]
+    },
+    "tourism": {
+      "distinct_values": 11,
+      "tagged_elements": 285,
+      "values": [
+        {
+          "count": 98,
+          "value": "information"
+        },
+        {
+          "count": 84,
+          "value": "artwork"
+        },
+        {
+          "count": 27,
+          "value": "hotel"
+        },
+        {
+          "count": 23,
+          "value": "viewpoint"
+        },
+        {
+          "count": 22,
+          "value": "attraction"
+        },
+        {
+          "count": 12,
+          "value": "picnic_site"
+        },
+        {
+          "count": 9,
+          "value": "museum"
+        },
+        {
+          "count": 6,
+          "value": "gallery"
+        },
+        {
+          "count": 2,
+          "value": "motel"
+        },
+        {
+          "count": 1,
+          "value": "guest_house"
+        },
+        {
+          "count": 1,
+          "value": "zoo"
+        }
+      ]
+    }
+  }
+}

@@ -29,8 +29,13 @@ async function fetchJson(url, signal) {
   return payload
 }
 
-export async function fetchCensusByPoint({ lat, lon, acs = 'latest', signal }) {
-  const url = buildApiUrl('/api/census/by-point', { lat, lon, acs })
+export async function fetchCensusByPoint({ lat, lon, acs = 'latest', includeParents = true, signal }) {
+  const url = buildApiUrl('/api/census/by-point', {
+    lat,
+    lon,
+    acs,
+    include_parents: includeParents,
+  })
   return fetchJson(url, signal)
 }
 

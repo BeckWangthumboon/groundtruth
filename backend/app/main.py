@@ -15,8 +15,11 @@ from .census_service import (
     NoGeographyFoundError,
     UpstreamAPIError,
     _extract_first_geography,
-    lookup_smallest_census_by_point,
     request_json,
+)
+from .census_profile_service import (
+    NoTractFoundError,
+    lookup_census_profile_by_point,
 )
 
 # Make scripts_sumedh importable from the project root
@@ -52,11 +55,18 @@ def census_by_point(
     lat: float = Query(..., ge=-90, le=90),
     lon: float = Query(..., ge=-180, le=180),
     acs: str = Query("latest"),
+    include_parents: bool = Query(True),
 ) -> dict:
     try:
         with httpx.Client(follow_redirects=True) as client:
-            return lookup_smallest_census_by_point(client, lat=lat, lon=lon, acs=acs)
-    except NoGeographyFoundError as exc:
+            return lookup_census_profile_by_point(
+                client,
+                lat=lat,
+                lon=lon,
+                acs=acs,
+                include_parents=include_parents,
+            )
+    except NoTractFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except UpstreamAPIError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc

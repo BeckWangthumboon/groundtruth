@@ -96,7 +96,8 @@ export function drawRiskLayers(map: mapboxgl.Map, riskGrid: RiskGridData) {
       "fill-extrusion-height": [
         "*",
         ["get", "height"],
-        ["coalesce", ["feature-state", HEIGHT_SCALE_STATE_KEY], 0],
+        // Keep bars visible even if feature-state animation is temporarily unavailable.
+        ["coalesce", ["feature-state", HEIGHT_SCALE_STATE_KEY], 1],
       ],
       "fill-extrusion-base": 0,
       "fill-extrusion-opacity": 0.9,
@@ -121,9 +122,10 @@ export function animateRiskLayers(map: mapboxgl.Map, riskGrid: RiskGridData): ()
 
     const elapsedSeconds = (now - startedAt) / 1000;
 
-    riskGrid.cells.features.forEach((feature, index) => {
+    for (let index = 0; index < riskGrid.cells.features.length; index += 1) {
+      const feature = riskGrid.cells.features[index];
       const id = feature.id;
-      if (id === undefined || id === null) return;
+      if (id === undefined || id === null) continue;
 
       const risk = Number(feature.properties.risk ?? 0);
       const revealDelay = index * 0.02;
@@ -133,11 +135,16 @@ export function animateRiskLayers(map: mapboxgl.Map, riskGrid: RiskGridData): ()
       const pulse =
         risk >= 0.68 ? 1 + Math.sin(elapsedSeconds * 3.2 + index * 0.33) * 0.06 * revealed : 1;
 
-      map.setFeatureState(
-        { source: SOURCE_ID, id },
-        { [HEIGHT_SCALE_STATE_KEY]: clamp(revealed * pulse, 0, 1.2) }
-      );
-    });
+      try {
+        map.setFeatureState(
+          { source: SOURCE_ID, id },
+          { [HEIGHT_SCALE_STATE_KEY]: clamp(revealed * pulse, 0, 1.2) }
+        );
+      } catch {
+        frameId = null;
+        return;
+      }
+    }
 
     frameId = requestAnimationFrame(tick);
   };

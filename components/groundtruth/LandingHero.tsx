@@ -7,6 +7,7 @@ import type { SearchBoxRetrieveResponse } from "@mapbox/search-js-core";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { AlertCircle, Orbit } from "lucide-react";
+import MapLoadingOverlay from "@/components/groundtruth/MapLoadingOverlay";
 import { hasMapboxToken, MAPBOX_TOKEN, MAP_STYLE_HERO } from "@/lib/groundtruth/config";
 import { DEMO_LOCATION, toExploreUrl } from "@/lib/groundtruth/location";
 import { toLocationFromSearchBoxRetrieve } from "@/lib/groundtruth/searchbox";
@@ -30,6 +31,7 @@ export default function LandingHero() {
 
   const [searchError, setSearchError] = useState<string | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [isMapReady, setIsMapReady] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -37,6 +39,7 @@ export default function LandingHero() {
   const rotationFrameRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef<number>(0);
   const transitionTimeoutRef = useRef<number | null>(null);
+  const loadTimeoutRef = useRef<number | null>(null);
 
   const stopRotation = useCallback(() => {
     if (rotationFrameRef.current !== null) {
@@ -145,6 +148,7 @@ export default function LandingHero() {
     mapboxgl.accessToken = MAPBOX_TOKEN;
 
     const map = new mapboxgl.Map({
+      accessToken: MAPBOX_TOKEN,
       container: mapContainerRef.current,
       style: MAP_STYLE_HERO,
       projection: "globe",
@@ -168,6 +172,11 @@ export default function LandingHero() {
     });
 
     map.on("load", () => {
+      if (loadTimeoutRef.current !== null) {
+        window.clearTimeout(loadTimeoutRef.current);
+        loadTimeoutRef.current = null;
+      }
+      setIsMapReady(true);
       setMapError(null);
       startRotation();
     });
@@ -179,17 +188,28 @@ export default function LandingHero() {
       const message = event.error?.message ?? "";
       if (!message) return;
       if (isAuthError(message)) {
+        setIsMapReady(false);
         setMapError("Mapbox token rejected. Confirm public token scopes include Styles:Read and Geocoding:Read.");
+        return;
       }
+      setIsMapReady(false);
+      setMapError(`Map render error: ${message.slice(0, 140)}`);
     });
 
     mapRef.current = map;
+    loadTimeoutRef.current = window.setTimeout(() => {
+      setMapError("Map rendering timed out. Check WebGL support or blocked Mapbox requests.");
+    }, 15000);
 
     return () => {
       stopRotation();
       if (transitionTimeoutRef.current !== null) {
         window.clearTimeout(transitionTimeoutRef.current);
         transitionTimeoutRef.current = null;
+      }
+      if (loadTimeoutRef.current !== null) {
+        window.clearTimeout(loadTimeoutRef.current);
+        loadTimeoutRef.current = null;
       }
       map.remove();
       mapRef.current = null;
@@ -201,6 +221,10 @@ export default function LandingHero() {
       <div className="fixed inset-0">
         <div ref={mapContainerRef} className="absolute inset-0" />
         {!hasToken || mapError ? <div className="gt-tokenless-backdrop" /> : null}
+        <MapLoadingOverlay
+          visible={hasToken && !mapError && (!isMapReady || isTransitioning)}
+          label={isTransitioning ? "Opening map experience..." : "Loading interactive globe..."}
+        />
         <div className="gt-globe-focus" aria-hidden />
         <div className="gt-hero-overlay opacity-100" />
       </div>

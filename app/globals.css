@@ -300,6 +300,28 @@
   display: block;
 }
 
+.gt-map-loader {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(125, 211, 252, 0.45);
+  background: rgba(2, 6, 23, 0.78);
+  color: rgb(186 230 253);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.46rem 0.78rem;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.45);
+  pointer-events: none;
+}
+
 .gt-search-button {
   display: inline-flex;
   align-items: center;

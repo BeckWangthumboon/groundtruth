@@ -8,6 +8,7 @@ import type { SearchBoxRetrieveResponse } from "@mapbox/search-js-core";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { AlertCircle, ChevronLeft, Layers3 } from "lucide-react";
+import MapLoadingOverlay from "@/components/groundtruth/MapLoadingOverlay";
 import { hasMapboxToken, MAPBOX_TOKEN, MAP_STYLE_GRID } from "@/lib/groundtruth/config";
 import { DEMO_LOCATION, parseLocationFromSearchParams, toExploreUrl } from "@/lib/groundtruth/location";
 import { animateRiskLayers, drawRiskLayers, GT_LAYER_IDS } from "@/lib/groundtruth/map-layers";
@@ -19,6 +20,16 @@ const SEARCH_TYPES = "country,region,postcode,district,place,locality,neighborho
 const SearchBox = dynamic(() => import("@mapbox/search-js-react").then((mod) => mod.SearchBox), { ssr: false });
 
 type CameraMode = "initial" | "fly";
+
+function getGridCameraOffset(map: mapboxgl.Map): [number, number] {
+  const width = map.getContainer().clientWidth;
+  if (width < 900) {
+    return [0, 132];
+  }
+
+  // Keep the 3D grid out from under the left-side panel.
+  return [Math.round(Math.min(420, width * 0.3)), 96];
+}
 
 function formatPercent(value: number): string {
   return `${Math.round(value * 100)}%`;
@@ -41,6 +52,12 @@ export default function ExploreScene() {
 
   const [searchError, setSearchError] = useState<string | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [isMapReady, setIsMapReady] = useState(false);
+  const [isLocationAnimating, setIsLocationAnimating] = useState(true);
+  const [renderDiagnostics, setRenderDiagnostics] = useState<{
+    sourceCellCount: number;
+    renderedCellCount: number;
+  } | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<LocationSelection>(urlLocation);
   const [riskGrid, setRiskGrid] = useState<RiskGridData>(() => buildRiskGrid(urlLocation.coordinates));
 
@@ -50,6 +67,8 @@ export default function ExploreScene() {
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const stopRiskAnimationRef = useRef<(() => void) | null>(null);
+  const locationAnimationTimeoutRef = useRef<number | null>(null);
+  const loadTimeoutRef = useRef<number | null>(null);
   const selectedLocationRef = useRef<LocationSelection>(selectedLocation);
 
   useEffect(() => {
@@ -72,6 +91,12 @@ export default function ExploreScene() {
 
       if (!map || !mapLoadedRef.current) return;
 
+      if (locationAnimationTimeoutRef.current !== null) {
+        window.clearTimeout(locationAnimationTimeoutRef.current);
+        locationAnimationTimeoutRef.current = null;
+      }
+
+      setIsLocationAnimating(true);
       stopRiskAnimationRef.current?.();
       stopRiskAnimationRef.current = null;
       map.stop();
@@ -84,23 +109,58 @@ export default function ExploreScene() {
       const renderGrid = () => {
         drawRiskLayers(map, nextGrid);
         stopRiskAnimationRef.current = animateRiskLayers(map, nextGrid);
+        const offset = getGridCameraOffset(map);
+
+        window.setTimeout(() => {
+          if (!map.getLayer(GT_LAYER_IDS.extrusion)) return;
+          const canvas = map.getCanvas();
+          const renderedCellCount = map.queryRenderedFeatures(
+            [
+              [0, 0],
+              [canvas.clientWidth, canvas.clientHeight],
+            ],
+            {
+              layers: [GT_LAYER_IDS.extrusion],
+            }
+          ).length;
+          setRenderDiagnostics({
+            sourceCellCount: nextGrid.cells.features.length,
+            renderedCellCount,
+          });
+        }, 400);
 
         if (cameraMode === "initial") {
-          map.jumpTo({
+          map.easeTo({
             center: location.coordinates,
             zoom: 14,
             pitch: 58,
             bearing: -36,
+            offset,
+            duration: 0,
+            essential: true,
           });
+          requestAnimationFrame(() => setIsLocationAnimating(false));
           return;
         }
+
+        const finishAnimation = () => {
+          setIsLocationAnimating(false);
+          if (locationAnimationTimeoutRef.current !== null) {
+            window.clearTimeout(locationAnimationTimeoutRef.current);
+            locationAnimationTimeoutRef.current = null;
+          }
+          map.off("moveend", finishAnimation);
+        };
+
+        map.on("moveend", finishAnimation);
+        locationAnimationTimeoutRef.current = window.setTimeout(finishAnimation, 3000);
 
         map.flyTo({
           center: location.coordinates,
           zoom: 14,
           pitch: 58,
           bearing: -36,
-          offset: [150, 84],
+          offset,
           duration: 2400,
           essential: true,
           easing: (value) => 1 - Math.pow(1 - value, 3),
@@ -135,6 +195,7 @@ export default function ExploreScene() {
     mapboxgl.accessToken = MAPBOX_TOKEN;
 
     const map = new mapboxgl.Map({
+      accessToken: MAPBOX_TOKEN,
       container: mapContainerRef.current,
       style: MAP_STYLE_GRID,
       projection: "globe",
@@ -158,7 +219,12 @@ export default function ExploreScene() {
     });
 
     map.on("load", () => {
+      if (loadTimeoutRef.current !== null) {
+        window.clearTimeout(loadTimeoutRef.current);
+        loadTimeoutRef.current = null;
+      }
       mapLoadedRef.current = true;
+      setIsMapReady(true);
       setMapError(null);
       applyLocation(selectedLocationRef.current, false, "initial");
     });
@@ -167,8 +233,12 @@ export default function ExploreScene() {
       const message = event.error?.message ?? "";
       if (!message) return;
       if (isAuthError(message)) {
+        setIsMapReady(false);
         setMapError("Mapbox token rejected. Confirm public token scopes include Styles:Read and Geocoding:Read.");
+        return;
       }
+      setIsMapReady(false);
+      setMapError(`Map render error: ${message.slice(0, 140)}`);
     });
 
     map.on("mousemove", (event) => {
@@ -216,6 +286,9 @@ export default function ExploreScene() {
     });
 
     mapRef.current = map;
+    loadTimeoutRef.current = window.setTimeout(() => {
+      setMapError("Map rendering timed out. Check WebGL support or blocked Mapbox requests.");
+    }, 15000);
 
     return () => {
       stopRiskAnimationRef.current?.();
@@ -223,6 +296,14 @@ export default function ExploreScene() {
       popupRef.current?.remove();
       markerRef.current?.remove();
       mapLoadedRef.current = false;
+      if (locationAnimationTimeoutRef.current !== null) {
+        window.clearTimeout(locationAnimationTimeoutRef.current);
+        locationAnimationTimeoutRef.current = null;
+      }
+      if (loadTimeoutRef.current !== null) {
+        window.clearTimeout(loadTimeoutRef.current);
+        loadTimeoutRef.current = null;
+      }
       map.remove();
       mapRef.current = null;
     };
@@ -245,7 +326,11 @@ export default function ExploreScene() {
       <div className="fixed inset-0">
         <div ref={mapContainerRef} className="absolute inset-0" />
         {!hasToken || mapError ? <div className="gt-tokenless-backdrop" /> : null}
-        <div className="gt-grid-overlay opacity-55" />
+        <MapLoadingOverlay
+          visible={hasToken && !mapError && (!isMapReady || isLocationAnimating)}
+          label={!isMapReady ? "Loading map scene..." : "Rendering 3D risk grid..."}
+        />
+        <div className="gt-grid-overlay opacity-35" />
       </div>
 
       <header className="fixed top-0 left-0 right-0 z-40 px-5 md:px-8 pt-5">
@@ -343,6 +428,12 @@ export default function ExploreScene() {
                   </div>
                 ))}
               </div>
+              {renderDiagnostics ? (
+                <p className="mt-3 text-xs text-slate-300/75">
+                  Render check: {renderDiagnostics.renderedCellCount} visible cells /{" "}
+                  {renderDiagnostics.sourceCellCount} source cells
+                </p>
+              ) : null}
             </article>
           </section>
         </div>

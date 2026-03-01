@@ -22,6 +22,8 @@ Location Assistant API: a FastAPI service that powers conversational location di
 When the main backend runs, it imports and mounts `chat_router` from `chatbot_backend.app`, so the same process serves Census/POI endpoints and the chat/TTS endpoints. Standalone: `uvicorn chatbot_backend.app:app --reload`.
 
 ## UI Design
+What do you think the design of the ai should look? Imitate the current design of the bar on the left I want it to be able to slide in and out on the right side. There should be a window that we uses where that bot is located in. The user could also enable the voice agent on a button, who could speak out the content from the llm text. 
+
 
 ## Purpose, Main
 1. give a reason out why the certain score is what it is.

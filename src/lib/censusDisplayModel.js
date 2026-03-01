@@ -1,3 +1,5 @@
+import { buildCensusChartSections } from './censusChartModel'
+
 const SECTION_ORDER = ['demographics', 'economics', 'families', 'housing', 'social']
 const SELECTOR_KIND_ORDER = ['tract', 'place', 'zcta', 'county']
 const SELECTOR_LABELS = {

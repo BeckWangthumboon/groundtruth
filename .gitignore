@@ -37,3 +37,5 @@ yarn-error.log*
 
 # skills
 .agents/skills/agent-browser/
+
+backend/app/__pycache__

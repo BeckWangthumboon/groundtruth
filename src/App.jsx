@@ -199,6 +199,7 @@ function App() {
   const [mapInstance, setMapInstance] = useState(null)
   const [inputValue, setInputValue] = useState('')
   const [isGoToPending, setIsGoToPending] = useState(false)
+  const [isZoomTransitioning, setIsZoomTransitioning] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
   const [hasStartedSearch, setHasStartedSearch] = useState(false)
 
@@ -274,7 +275,7 @@ function App() {
     []
   )
 
-  const flyToSearchFeature = useCallback((feature) => {
+  const flyToSearchFeature = useCallback((feature, onMoveEnd) => {
     const map = mapRef.current
     if (!map || !feature) {
       return false
@@ -293,6 +294,7 @@ function App() {
 
     map.once('moveend', () => {
       resumeGlobeRotation()
+      onMoveEnd?.()
     })
 
     if (bounds) {
@@ -320,7 +322,7 @@ function App() {
     return true
   }, [])
 
-  const runCensusLookupThenZoom = useCallback(
+  const zoomThenRunCensusLookup = useCallback(
     async (feature, labelOverride = '') => {
       const centerPoint = resolveFeatureCenter(feature)
       if (!centerPoint) {
@@ -332,6 +334,24 @@ function App() {
 
       requestIdRef.current += 1
       const requestId = requestIdRef.current
+
+      setIsZoomTransitioning(true)
+      const didMove = flyToSearchFeature(feature, () => {
+        if (requestId === requestIdRef.current) {
+          setIsZoomTransitioning(false)
+        }
+      })
+      if (!didMove) {
+        if (requestId === requestIdRef.current) {
+          setIsZoomTransitioning(false)
+        }
+        setCensusStatus('error')
+        setCensusData(null)
+        setCensusErrorMessage('Could not zoom to the selected search result.')
+        return false
+      }
+
+      setHasSearched(true)
 
       lookupAbortControllerRef.current?.abort()
       const controller = new AbortController()
@@ -356,11 +376,6 @@ function App() {
         setCensusData(payload)
         setCensusStatus('success')
         setCensusErrorMessage('')
-
-        const didMove = flyToSearchFeature(feature)
-        if (didMove) {
-          setHasSearched(true)
-        }
 
         return didMove
       } catch (error) {
@@ -429,12 +444,12 @@ function App() {
           setInputValue(nextInputValue)
         }
 
-        return await runCensusLookupThenZoom(feature, nextInputValue || trimmedQuery)
+        return await zoomThenRunCensusLookup(feature, nextInputValue || trimmedQuery)
       } finally {
         setIsGoToPending(false)
       }
     },
-    [geocodeAddressToFeature, runCensusLookupThenZoom]
+    [geocodeAddressToFeature, zoomThenRunCensusLookup]
   )
 
   const handleSearchRetrieve = useCallback(
@@ -450,9 +465,9 @@ function App() {
         setInputValue(nextInputValue)
       }
 
-      void runCensusLookupThenZoom(feature, nextInputValue)
+      void zoomThenRunCensusLookup(feature, nextInputValue)
     },
-    [runCensusLookupThenZoom]
+    [zoomThenRunCensusLookup]
   )
 
   const handleGoToClick = useCallback(() => {
@@ -518,6 +533,8 @@ function App() {
   }, [submitGoToQuery])
 
   const isLookupInProgress = censusStatus === 'loading' || censusMutation.isPending
+  const showAnalysisOverlay = isLookupInProgress && !isZoomTransitioning
+  const showCensusPanel = censusStatus === 'success' || censusStatus === 'error'
 
   return (
     <div
@@ -531,20 +548,18 @@ function App() {
       </div>
 
       <main className="ui-layer">
-        <AnalysisLoadingOverlay visible={isLookupInProgress} />
+        <AnalysisLoadingOverlay visible={showAnalysisOverlay} />
 
-        <section
-          className={`census-panel-anchor${
-            censusStatus !== 'idle' ? ' census-panel-anchor--visible' : ''
-          }`}
-        >
-          <CensusDataPanel
-            status={censusStatus}
-            data={censusData}
-            errorMessage={censusErrorMessage}
-            locationLabel={censusLocationLabel}
-          />
-        </section>
+        {showCensusPanel ? (
+          <section className="census-panel-anchor census-panel-anchor--visible">
+            <CensusDataPanel
+              status={censusStatus}
+              data={censusData}
+              errorMessage={censusErrorMessage}
+              locationLabel={censusLocationLabel}
+            />
+          </section>
+        ) : null}
 
         <div className={`search-shell${hasSearched ? ' search-shell--docked' : ''}`}>
           <Search className="search-icon" size={19} />

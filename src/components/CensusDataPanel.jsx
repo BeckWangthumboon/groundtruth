@@ -1,47 +1,20 @@
-function formatNumber(value) {
-  if (value == null || Number.isNaN(Number(value))) {
-    return 'n/a'
-  }
-  const numeric = Number(value)
-  if (!Number.isFinite(numeric)) {
-    return 'n/a'
-  }
-  return numeric.toLocaleString(undefined, {
-    maximumFractionDigits: Number.isInteger(numeric) ? 0 : 1,
-  })
-}
-
-function formatMaybeCurrency(example) {
-  const title = String(example?.title || '').toLowerCase()
-  if (!title.includes('income') && !title.includes('rent') && !title.includes('value')) {
-    return formatNumber(example?.estimate)
-  }
-  if (example?.estimate == null || Number(example.estimate) < 0) {
-    return 'n/a'
-  }
-  return `$${formatNumber(example.estimate)}`
-}
-
-function Row({ label, value }) {
-  return (
-    <div className="census-panel__row">
-      <span className="census-panel__label">{label}</span>
-      <span className="census-panel__value">{value}</span>
-    </div>
-  )
-}
+import { buildCensusDisplayModel } from '../lib/censusDisplayModel'
+import { CensusHeroStats } from './CensusHeroStats'
+import { CensusStatTabs } from './CensusStatTabs'
 
 export function CensusDataPanel({ status, data, errorMessage, locationLabel }) {
-  const selected = data?.selected_for_acs_data
-  const tables = data?.tables
-  const keyExamples = data?.data_interpreted?.key_examples || {}
-  const entries = Object.values(keyExamples).filter(Boolean)
+  const displayModel = status === 'success' ? buildCensusDisplayModel(data) : null
 
   return (
     <aside className={`census-panel census-panel--${status}`} aria-live="polite">
       <header className="census-panel__header">
-        <h2>Census Data</h2>
-        {locationLabel ? <p>{locationLabel}</p> : null}
+        {locationLabel ? (
+          <h2 className="census-panel__location">{locationLabel}</h2>
+        ) : (
+          <h2 className="census-panel__location">Census Data</h2>
+        )}
+        <p className="census-panel__subtitle">ACS 5-Year Estimates</p>
+        <div className="census-panel__divider" />
       </header>
 
       {status === 'idle' ? (
@@ -58,41 +31,14 @@ export function CensusDataPanel({ status, data, errorMessage, locationLabel }) {
       {status === 'error' ? (
         <div className="census-panel__error">
           <p>{errorMessage || 'Failed to fetch Census data.'}</p>
-          <p className="census-panel__hint">Map zoom is paused until data succeeds.</p>
+          <p className="census-panel__hint">Map zoom completed, but Census data failed to load.</p>
         </div>
       ) : null}
 
       {status === 'success' ? (
         <>
-          <div className="census-panel__meta">
-            <Row label="Selected level" value={selected?.selected_level || 'n/a'} />
-            <Row label="Reporter GEOID" value={selected?.reporter_geoid || 'n/a'} />
-            <Row
-              label="Tables available"
-              value={`${tables?.available_count ?? 'n/a'} / ${tables?.requested_count ?? 'n/a'}`}
-            />
-          </div>
-
-          <section className="census-panel__examples">
-            <h3>Interpreted examples</h3>
-            {entries.slice(0, 12).map((example) => (
-              <div key={example.table_id} className="census-panel__example">
-                <p className="census-panel__example-title">
-                  {example.table_id}: {example.title || 'Unknown table'}
-                </p>
-                <Row label="Value" value={formatMaybeCurrency(example)} />
-                <Row label="MOE" value={formatNumber(example.margin_of_error)} />
-                {example.is_sentinel_negative_median ? (
-                  <p className="census-panel__hint">Sentinel negative median (unavailable).</p>
-                ) : null}
-              </div>
-            ))}
-          </section>
-
-          <details className="census-panel__raw">
-            <summary>Raw payload</summary>
-            <pre>{JSON.stringify(data, null, 2)}</pre>
-          </details>
+          <CensusHeroStats cards={displayModel?.snapshotCards} />
+          <CensusStatTabs sections={displayModel?.sections} />
         </>
       ) : null}
     </aside>

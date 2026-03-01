@@ -43,3 +43,5 @@ next-env.d.ts
 
 # skills
 .agents/skills/agent-browser/
+__pycache__/
+*.pyc

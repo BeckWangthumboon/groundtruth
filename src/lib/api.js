@@ -130,7 +130,7 @@ async function fetchPostJson(url, body, signal) {
 /**
  * Send a message to the Location Assistant (Gemini).
  *
- * @param {{ message: string, conversationHistory: Array<{ role: string, content: string }>, focus: string, useDefaults?: boolean, weights?: Record<string,number>|null, locationsWithMetrics?: Array<object>|null, signal?: AbortSignal }} opts
+ * @param {{ message: string, conversationHistory: Array<{ role: string, content: string }>, focus: string, useDefaults?: boolean, weights?: Record<string,number>|null, locationsWithMetrics?: Array<object>|null, selectedKeypointsData?: Array<{ id: string, label: string, count: number }>|null, keypointsRadiusM?: number|null, signal?: AbortSignal }} opts
  * @returns {Promise<{ reply: string, supportsReasoning?: boolean, reasoning?: string, weights?: Record<string,number>, rankedIds?: string[], mapKeywords?: string[] }>}
  */
 export async function postChat({
@@ -140,6 +140,8 @@ export async function postChat({
   useDefaults = true,
   weights = null,
   locationsWithMetrics = null,
+  selectedKeypointsData = null,
+  keypointsRadiusM = null,
   signal,
 }) {
   const url = buildApiUrl('/api/chat')
@@ -152,6 +154,8 @@ export async function postChat({
       useDefaults,
       weights,
       locationsWithMetrics,
+      selectedKeypointsData,
+      keypointsRadiusM,
     },
     signal
   )

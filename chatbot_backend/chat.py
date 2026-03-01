@@ -71,6 +71,8 @@ def chat(
     weights: Weights | None = None,
     use_defaults: bool = True,
     locations_with_metrics: list[dict] | None = None,
+    selected_keypoints_data: list[dict] | None = None,
+    keypoints_radius_m: int | None = None,
     api_key: str | None = None,
 ) -> dict[str, Any]:
     """
@@ -95,25 +97,35 @@ def chat(
     else:
         weights = dict(weights)
 
-    import google.generativeai as genai
-    genai.configure(api_key=key)
-    model = genai.GenerativeModel(
-        model_name=GEMINI_CHAT_MODEL,
+    from google.genai import Client
+    from google.genai.types import GenerateContentConfig, Content, Part
+
+    client = Client(api_key=key)
+    config = GenerateContentConfig(
         system_instruction=build_system_instruction(
-            focus_typed, locations_with_metrics, use_reasoning=SUPPORTS_REASONING_UI
+            focus_typed,
+            locations_with_metrics,
+            use_reasoning=SUPPORTS_REASONING_UI,
+            selected_keypoints_data=selected_keypoints_data,
+            keypoints_radius_m=keypoints_radius_m,
         ),
-        generation_config=genai.GenerationConfig(
-            max_output_tokens=2048,
-            temperature=0.7,
-        ),
+        max_output_tokens=2048,
+        temperature=0.7,
     )
 
     history = conversation_history[-MAX_HISTORY_TURNS * 2 :] if conversation_history else []
-    history_for_api = []
+    history_for_api: list[Content] = []
     for msg in history:
         role = "model" if msg.get("role") == "assistant" else "user"
-        history_for_api.append({"role": role, "parts": [msg.get("content", "")]})
-    history_for_api.append({"role": "user", "parts": [message]})
+        history_for_api.append(
+            Content(role=role, parts=[Part.from_text(text=msg.get("content", ""))])
+        )
+
+    chat_session = client.chats.create(
+        model=GEMINI_CHAT_MODEL,
+        config=config,
+        history=history_for_api,
+    )
 
     ranked_ids: list[str] | None = None
 
@@ -133,11 +145,9 @@ def chat(
             f"In 2-3 sentences, explain why the first location ranks best given their priorities "
             f"(weights: {weights}). Use only the metric values from the context."
         )
-        chat_session = model.start_chat(history=history_for_api[:-1])
         response = chat_session.send_message(prompt_why)
         reply = (response.text or f"Ranked order: {rank_summary}.").strip()
     else:
-        chat_session = model.start_chat(history=history_for_api[:-1])
         response = chat_session.send_message(message)
         reply = (response.text or "").strip()
 

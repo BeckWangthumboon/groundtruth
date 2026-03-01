@@ -81,6 +81,8 @@ def build_system_instruction(
     focus: Focus,
     locations_with_metrics: list[dict] | None = None,
     use_reasoning: bool = False,
+    selected_keypoints_data: list[dict] | None = None,
+    keypoints_radius_m: int | None = None,
 ) -> str:
     """Build the full system instruction for Gemini."""
     weights = DEFAULT_WEIGHTS[focus]
@@ -107,5 +109,23 @@ Default weights for this focus: {weights}."""
                 "When they ask where they are interested in living, which city they selected, "
                 "what location they are viewing, or similar, tell them this location and use the metrics above to describe it.\n"
             )
+
+    if selected_keypoints_data and len(selected_keypoints_data) > 0:
+        radius_str = f" within {keypoints_radius_m}m" if keypoints_radius_m else ""
+        out += f"\n\nSelected Key Points (amenities nearby{radius_str}):\n"
+        for kp in selected_keypoints_data:
+            label = kp.get("label") or kp.get("id") or "?"
+            count = kp.get("count", 0)
+            names = kp.get("names")
+            if names and isinstance(names, list) and len(names) > 0:
+                names_str = ", ".join(str(n) for n in names[:10] if n)
+                out += f"- {label}: {count} (examples: {names_str})\n"
+            else:
+                out += f"- {label}: {count}\n"
+        out += (
+            "When the user asks about nearby amenities, parks, transit, retail, etc., "
+            "use these counts and example names when available. Only refer to key points the user has selected (checked). "
+            "When asked for specific place names, list the examples provided.\n"
+        )
 
     return out

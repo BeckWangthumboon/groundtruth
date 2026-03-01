@@ -29,6 +29,13 @@ class ChatMessage(BaseModel):
     content: str
 
 
+class KeypointData(BaseModel):
+    id: str
+    label: str
+    count: int
+    names: list[str] | None = None
+
+
 class ChatRequestBody(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     message: str
@@ -37,6 +44,8 @@ class ChatRequestBody(BaseModel):
     weights: dict[str, float] | None = None
     useDefaults: bool = Field(True, alias="useDefaults")
     locationsWithMetrics: list[dict] | None = Field(None, alias="locationsWithMetrics")
+    selectedKeypointsData: list[KeypointData] | None = Field(None, alias="selectedKeypointsData")
+    keypointsRadiusM: int | None = Field(None, alias="keypointsRadiusM")
 
 
 class ChatResponseBody(BaseModel):
@@ -59,6 +68,17 @@ class TTSRequestBody(BaseModel):
 def post_chat(body: ChatRequestBody) -> dict[str, Any]:
     """Chat with the location assistant (Gemini)."""
     try:
+        keypoints_list = None
+        if body.selectedKeypointsData:
+            keypoints_list = [
+                {
+                    "id": k.id,
+                    "label": k.label,
+                    "count": k.count,
+                    "names": k.names if k.names else None,
+                }
+                for k in body.selectedKeypointsData
+            ]
         result = chat(
             message=body.message,
             conversation_history=[{"role": m.role, "content": m.content} for m in body.conversationHistory],
@@ -66,6 +86,8 @@ def post_chat(body: ChatRequestBody) -> dict[str, Any]:
             weights=body.weights,
             use_defaults=body.useDefaults,
             locations_with_metrics=body.locationsWithMetrics,
+            selected_keypoints_data=keypoints_list,
+            keypoints_radius_m=body.keypointsRadiusM,
         )
         return result
     except ValueError as e:

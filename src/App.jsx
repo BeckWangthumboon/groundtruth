@@ -29,6 +29,8 @@ const secondsPerRevolution = 160
 const maxSpinZoom = 3.4
 const homeZoom = 2.4
 const streetLevelZoom = 17.5
+/** Zoom threshold: below = 2D mode (flat, no 3D buildings/trees); at or above = 3D mode */
+const zoom2d3dThreshold = 15
 const dynamicPoiRadiusM = 1200
 const enablePoiDebugLogs = import.meta.env.DEV
 
@@ -94,6 +96,24 @@ const getFeatureDisplayLabel = (feature) =>
   feature?.properties?.name_preferred ??
   feature?.properties?.name ??
   ''
+
+/**
+ * Apply 2D or 3D mode based on zoom. Below threshold: flat 2D (no 3D buildings/trees).
+ * At or above: 3D mode. Also eases pitch to 0 when zoomed out for a flatter view.
+ */
+function apply2d3dModeByZoom(map) {
+  if (!map?.setConfigProperty) return
+  const zoom = map.getZoom()
+  const use3d = zoom >= zoom2d3dThreshold
+  try {
+    map.setConfigProperty('basemap', 'show3dObjects', use3d)
+  } catch (_) {
+    // Config may not be ready yet
+  }
+  if (!use3d && map.getPitch() > 0) {
+    map.easeTo({ pitch: 0, duration: 400 })
+  }
+}
 
 const searchTheme = {
   variables: {
@@ -356,6 +376,7 @@ function App() {
         basemap: {
           theme: 'monochrome',
           lightPreset: 'night',
+          show3dObjects: false, // Start in 2D; zoom listener enables 3D when zoomed in
         },
       },
       interactive: true,
@@ -374,6 +395,8 @@ function App() {
         'space-color': 'rgb(1, 2, 5)',
         'star-intensity': 0.45,
       })
+      apply2d3dModeByZoom(map)
+      map.on('zoomend', () => apply2d3dModeByZoom(map))
       resumeGlobeRotation()
     })
 
@@ -758,6 +781,8 @@ function App() {
                   checklistItems={checklistItems}
                   checklistState={checklistState}
                   onToggleChecklistItem={handleToggleChecklistItem}
+                  poiData={dynamicPoiQuery.data ?? null}
+                  poiRadiusM={dynamicPoiParams?.radiusM ?? dynamicPoiRadiusM}
                 />
               </div>
             </section>

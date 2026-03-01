@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Volume2, VolumeX, ChevronRight, ChevronDown } from 'lucide-react'
 import { postChat, postTts } from '../lib/api'
 import { buildLocationContextForChat } from '../lib/locationContextForChat'
+import { buildKeypointsContextForChat } from '../lib/keypointsContextForChat'
 
 /**
  * Build a data URL for TTS playback from base64 and format (e.g. "wav").
@@ -9,6 +10,43 @@ import { buildLocationContextForChat } from '../lib/locationContextForChat'
 function buildAudioDataUrl(audioBase64, format) {
   const mime = format === 'wav' ? 'audio/wav' : `audio/${format}`
   return `data:${mime};base64,${audioBase64}`
+}
+
+/** Max chars for TTS (Google Cloud limit ~5000; browser has no hard limit but long text is slow). */
+const TTS_MAX_CHARS = 4000
+
+/**
+ * Prepare text for TTS: strip markdown, truncate.
+ */
+function prepareTextForTts(text) {
+  if (typeof text !== 'string' || !text.trim()) return ''
+  let out = text
+    .replace(/```[\s\S]*?```/g, '') // code blocks
+    .replace(/`[^`]+`/g, (m) => m.slice(1, -1)) // inline code
+    .replace(/\*\*([^*]+)\*\*/g, '$1') // bold
+    .replace(/\*([^*]+)\*/g, '$1') // italic
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links
+    .replace(/\n{2,}/g, '. ') // paragraph breaks
+    .replace(/\n/g, ' ')
+    .trim()
+  return out.length > TTS_MAX_CHARS ? out.slice(0, TTS_MAX_CHARS) + '…' : out
+}
+
+/**
+ * Speak text using only Google Cloud TTS (no browser fallback).
+ * Throws on any error so callers can decide how to handle it.
+ */
+async function speakReply(text) {
+  const clean = prepareTextForTts(text)
+  if (!clean) return
+
+  const tts = await postTts({ text: clean })
+  if (!tts?.audioBase64) {
+    throw new Error('Text-to-speech returned no audio')
+  }
+  const dataUrl = buildAudioDataUrl(tts.audioBase64, tts?.format ?? 'wav')
+  const audio = new Audio(dataUrl)
+  await audio.play()
 }
 
 /**
@@ -69,6 +107,8 @@ function ReasoningBlock({ reasoningText, defaultOpen = false, id, isStreaming = 
  *   checklistItems?: readonly { id: string, label: string }[]
  *   checklistState?: Record<string, boolean>
  *   onToggleChecklistItem?: ((itemId: string) => void) | null
+ *   poiData?: { countsByLabel?: Record<string, number> } | null
+ *   poiRadiusM?: number | null
  * }} props
  */
 export function AssistantPanel({
@@ -77,6 +117,8 @@ export function AssistantPanel({
   checklistItems = [],
   checklistState = {},
   onToggleChecklistItem = null,
+  poiData = null,
+  poiRadiusM = null,
 }) {
   const [messages, setMessages] = useState([])
   const [inputValue, setInputValue] = useState('')
@@ -123,6 +165,11 @@ export function AssistantPanel({
 
       try {
         const locationsWithMetrics = buildLocationContextForChat(censusData, locationLabel)
+        const selectedKeypointsData = buildKeypointsContextForChat(
+          checklistItems,
+          checklistState,
+          poiData
+        )
         const result = await postChat({
           message: text,
           conversationHistory,
@@ -130,6 +177,9 @@ export function AssistantPanel({
           useDefaults: true,
           weights: null,
           locationsWithMetrics: locationsWithMetrics.length > 0 ? locationsWithMetrics : null,
+          selectedKeypointsData:
+            selectedKeypointsData.length > 0 ? selectedKeypointsData : null,
+          keypointsRadiusM: poiRadiusM ?? null,
         })
 
         const reply = result?.reply ?? ''
@@ -148,12 +198,13 @@ export function AssistantPanel({
 
         if (voiceEnabled && reply) {
           try {
-            const tts = await postTts({ text: reply })
-            const dataUrl = buildAudioDataUrl(tts?.audioBase64 ?? '', tts?.format ?? 'wav')
-            const audio = new Audio(dataUrl)
-            await audio.play()
+            await speakReply(reply)
           } catch (ttsErr) {
             console.warn('TTS playback failed:', ttsErr)
+            setVoiceEnabled(false)
+            const ttsMessage =
+              ttsErr instanceof Error ? ttsErr.message : 'Text-to-speech failed'
+            setError(ttsMessage)
           }
         }
       } catch (err) {
@@ -164,7 +215,7 @@ export function AssistantPanel({
         setIsLoading(false)
       }
     },
-    [inputValue, isLoading, messages, voiceEnabled, censusData, locationLabel]
+    [inputValue, isLoading, messages, voiceEnabled, censusData, locationLabel, checklistItems, checklistState, poiData, poiRadiusM]
   )
 
   return (

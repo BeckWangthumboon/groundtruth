@@ -79,7 +79,25 @@ def synthesize_tts(api_key: str, text: str) -> dict[str, Any]:
         timeout=30,
     )
     if not resp.ok:
-        raise RuntimeError(resp.text or resp.reason)
+        err_msg = resp.text or resp.reason
+        try:
+            data = resp.json()
+            err = data.get("error") if isinstance(data, dict) else None
+            if isinstance(err, dict):
+                err_msg = err.get("message") or err_msg
+                for d in err.get("details") or []:
+                    if not isinstance(d, dict):
+                        continue
+                    if "activationUrl" in d:
+                        err_msg = err_msg.rstrip() + "\n" + d.get("activationUrl", "")
+                        break
+                    links = d.get("links")
+                    if links and isinstance(links, list) and links[0].get("url"):
+                        err_msg = err_msg.rstrip() + "\n" + links[0].get("url", "")
+                        break
+        except Exception:
+            pass
+        raise RuntimeError(err_msg)
 
     data = resp.json()
     b64 = data.get("audioContent")

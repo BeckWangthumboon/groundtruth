@@ -13,7 +13,7 @@ Python backend implementing the same behavior as the Next.js API routes: **chat*
 | `chat.py` | `chat()` – one turn with Gemini, optional ranking, weights/keywords parsing |
 | `tts.py` | `pcm_to_wav()`, `synthesize_tts()` – Google Cloud TTS → WAV base64 |
 | `app.py` | FastAPI app: `POST /api/chat`, `POST /api/tts`, `GET /health` |
-| `config.py` | Hardcoded API keys (replace with your keys) |
+| `config.py` | Loads API keys from `.env` at project root (see backend README) |
 
 ## Setup
 
@@ -27,7 +27,7 @@ python -m venv .venv
 pip install -r updatedBackend/requirements.txt
 ```
 
-Edit `updatedBackend/config.py` and set your API keys, or set env vars: `GOOGLE_GENERATIVE_AI_API_KEY`, `GOOGLE_CLOUD_TTS_API_KEY`.
+Add `GOOGLE_GENERATIVE_AI_API_KEY` and `GOOGLE_CLOUD_TTS_API_KEY` to your `.env` file at the project root (see [backend README](../backend/README.md)).
 
 ## Run
 

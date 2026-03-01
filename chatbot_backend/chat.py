@@ -6,7 +6,7 @@ import re
 from typing import Any
 
 try:
-    from .config import GOOGLE_GENERATIVE_AI_API_KEY
+    from .config import GOOGLE_GENERATIVE_AI_API_KEY, GEMINI_CHAT_MODEL, SUPPORTS_REASONING_UI
     from .chat_config import (
         DEFAULT_WEIGHTS,
         METRIC_IDS,
@@ -18,7 +18,7 @@ try:
     from .weights import parse_weights_from_reply
     from .keywords import parse_map_keywords_from_reply, write_keywords_to_file
 except ImportError:
-    from config import GOOGLE_GENERATIVE_AI_API_KEY
+    from config import GOOGLE_GENERATIVE_AI_API_KEY, GEMINI_CHAT_MODEL, SUPPORTS_REASONING_UI
     from chat_config import (
         DEFAULT_WEIGHTS,
         METRIC_IDS,
@@ -31,6 +31,24 @@ except ImportError:
     from keywords import parse_map_keywords_from_reply, write_keywords_to_file
 
 MAX_HISTORY_TURNS = 10
+
+
+def _parse_reasoning_from_reply(reply: str) -> tuple[str, str | None]:
+    """
+    Extract optional reasoning from the model reply. Expects a markdown block:
+    ```reasoning
+    ...text...
+    ```
+    Returns (reply_without_reasoning_block, reasoning_text_or_None).
+    """
+    pattern = r"```reasoning\s*\n([\s\S]*?)```"
+    match = re.search(pattern, reply, re.IGNORECASE)
+    if not match:
+        return reply, None
+    reasoning = match.group(1).strip()
+    reply_clean = reply[: match.start()].strip() + "\n\n" + reply[match.end() :].strip()
+    reply_clean = re.sub(r"\n{3,}", "\n\n", reply_clean).strip()
+    return reply_clean, reasoning if reasoning else None
 
 
 def _is_rank_request(message: str) -> bool:
@@ -80,8 +98,14 @@ def chat(
     import google.generativeai as genai
     genai.configure(api_key=key)
     model = genai.GenerativeModel(
-        model_name="gemini-2.5-flash",
-        system_instruction=build_system_instruction(focus_typed, locations_with_metrics),
+        model_name=GEMINI_CHAT_MODEL,
+        system_instruction=build_system_instruction(
+            focus_typed, locations_with_metrics, use_reasoning=SUPPORTS_REASONING_UI
+        ),
+        generation_config=genai.GenerationConfig(
+            max_output_tokens=2048,
+            temperature=0.7,
+        ),
     )
 
     history = conversation_history[-MAX_HISTORY_TURNS * 2 :] if conversation_history else []
@@ -122,7 +146,20 @@ def chat(
     if map_keywords:
         write_keywords_to_file(map_keywords, {"source": message})
 
-    result: dict[str, Any] = {"reply": reply}
+    if SUPPORTS_REASONING_UI:
+        reply_clean, reasoning = _parse_reasoning_from_reply(reply)
+        if reasoning is None:
+            reasoning = "I considered your message and the current context to give this reply."
+        reply = reply_clean
+    else:
+        reasoning = None
+
+    result: dict[str, Any] = {
+        "reply": reply,
+        "supportsReasoning": SUPPORTS_REASONING_UI,
+    }
+    if reasoning:
+        result["reasoning"] = reasoning
     if parsed_weights:
         result["weights"] = parsed_weights
     if ranked_ids is not None:

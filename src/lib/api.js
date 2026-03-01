@@ -97,3 +97,73 @@ export async function fetchTractGeo({ lat, lon, signal }) {
   const url = buildApiUrl('/api/census/tract-geo', { lat, lon })
   return fetchJson(url, signal)
 }
+
+/**
+ * POST JSON and parse response. Uses same error handling as fetchJson.
+ */
+async function fetchPostJson(url, body, signal) {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal,
+  })
+
+  let payload = null
+  try {
+    payload = await response.json()
+  } catch {
+    payload = null
+  }
+
+  if (!response.ok) {
+    const message =
+      (typeof payload?.detail === 'string' && payload.detail) ||
+      payload?.error ||
+      `Request failed (${response.status})`
+    throw new Error(message)
+  }
+
+  return payload
+}
+
+/**
+ * Send a message to the Location Assistant (Gemini).
+ *
+ * @param {{ message: string, conversationHistory: Array<{ role: string, content: string }>, focus: string, useDefaults?: boolean, weights?: Record<string,number>|null, locationsWithMetrics?: Array<object>|null, signal?: AbortSignal }} opts
+ * @returns {Promise<{ reply: string, supportsReasoning?: boolean, reasoning?: string, weights?: Record<string,number>, rankedIds?: string[], mapKeywords?: string[] }>}
+ */
+export async function postChat({
+  message,
+  conversationHistory,
+  focus,
+  useDefaults = true,
+  weights = null,
+  locationsWithMetrics = null,
+  signal,
+}) {
+  const url = buildApiUrl('/api/chat')
+  return fetchPostJson(
+    url,
+    {
+      message,
+      conversationHistory: conversationHistory ?? [],
+      focus,
+      useDefaults,
+      weights,
+      locationsWithMetrics,
+    },
+    signal
+  )
+}
+
+/**
+ * Synthesize speech from text via Google Cloud TTS.
+ *
+ * @param {{ text: string, signal?: AbortSignal }} opts
+ * @returns {Promise<{ audioBase64: string, format: string }>}
+ */
+export async function postTts({ text, signal }) {
+  const url = buildApiUrl('/api/tts')
+  return fetchPostJson(url, { text: text ?? '' }, signal)
+}

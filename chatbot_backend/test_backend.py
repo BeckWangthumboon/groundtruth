@@ -118,12 +118,19 @@ def test5():
 def test6():
     # Test chat input validation and rank-request detection; skip real Gemini call if key is placeholder
     try:
-        from chatbot_backend.chat import chat, _is_rank_request
+        from chatbot_backend.chat import chat, _is_rank_request, _parse_reasoning_from_reply
     except ImportError:
-        from chat import chat, _is_rank_request
+        from chat import chat, _is_rank_request, _parse_reasoning_from_reply
     assert _is_rank_request("Rank them by safety") is True
     assert _is_rank_request("What's the best location?") is True
     assert _is_rank_request("I want to live somewhere safe") is False
+    # Reasoning parser: no block -> (unchanged, None); with block -> (clean reply, reasoning text)
+    no_reason, r_none = _parse_reasoning_from_reply("Just a normal reply.")
+    assert no_reason == "Just a normal reply." and r_none is None
+    with_reason = "Here is why.\n\n```reasoning\nSafety is top for you.\n```\n\nSo I recommend A."
+    clean, r_text = _parse_reasoning_from_reply(with_reason)
+    assert r_text == "Safety is top for you."
+    assert "So I recommend A." in clean and "```reasoning" not in clean
     try:
         chat("", [], "tenant")
     except ValueError as e:

@@ -24,7 +24,7 @@ You'll learn how to:
 
 - Clone this repository and navigate to this directory
 - Install dependencies with `npm install`
-- Replace `YOUR_MAPBOX_ACCESS_TOKEN` in `src/App.jsx` with an access token from your [Mapbox account](https://console.mapbox.com/).
+- Add your Mapbox access token to a `.env` file at the project root: `VITE_MAPBOX_ACCESS_TOKEN=pk.your_token_here` (get a token from your [Mapbox account](https://console.mapbox.com/)).
 - Run the development server with `npm run dev` and open the app in your browser at [http://localhost:5173](http://localhost:5173).
 
 ## Area 3D page (0.1 km square)

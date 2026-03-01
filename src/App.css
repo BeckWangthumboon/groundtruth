@@ -251,6 +251,64 @@ body {
   color: rgba(245, 250, 255, 1);
 }
 
+/* ── Assistant panel (right side) ───────────────── */
+
+.assistant-panel-anchor {
+  position: absolute;
+  top: 24px;
+  right: 0;
+  width: min(520px, calc(100vw - 2rem));
+  pointer-events: none;
+  opacity: 1;
+  transform: translateX(0);
+  transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 180ms ease;
+  z-index: 5;
+  visibility: visible;
+}
+
+.assistant-panel-anchor--visible {
+  opacity: 1;
+}
+
+.assistant-panel-anchor--collapsed {
+  transform: translateX(calc(100% - 56px));
+}
+
+.assistant-panel-shell {
+  margin-right: 12px;
+  pointer-events: auto;
+  transition: opacity 180ms ease;
+}
+
+.assistant-panel-shell--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.assistant-panel-toggle {
+  position: absolute;
+  top: 52px;
+  left: -28px;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(184, 204, 241, 0.34);
+  background: rgba(15, 24, 40, 0.94);
+  color: rgba(232, 241, 255, 0.94);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+.assistant-panel-toggle:hover {
+  border-color: rgba(215, 230, 252, 0.74);
+  background: rgba(29, 40, 64, 0.98);
+  color: rgba(245, 250, 255, 1);
+}
+
 /* ── Panel shell ───────────────────────────────── */
 
 .census-panel {
@@ -401,6 +459,304 @@ body {
 
 .persona-checklist-panel .census-panel__divider {
   margin-top: 7px;
+}
+
+/* ── Assistant panel content ────────────────────── */
+
+.assistant-panel {
+  border: 1px solid rgba(227, 236, 252, 0.2);
+  background: rgba(8, 12, 22, 0.86);
+  border-radius: 24px;
+  box-shadow: 0 22px 56px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(14px);
+  color: #eef2ff;
+  max-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 18px 16px 16px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(198, 214, 240, 0.42) rgba(15, 23, 38, 0.72);
+}
+
+.assistant-panel__header {
+  margin-bottom: 2px;
+  flex-shrink: 0;
+}
+
+.assistant-panel__location {
+  margin: 0;
+  font-size: 1.18rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: rgba(245, 249, 255, 0.98);
+  line-height: 1.25;
+}
+
+.assistant-panel__subtitle {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(180, 198, 232, 0.62);
+}
+
+.assistant-panel__divider {
+  margin: 10px 0 0;
+  height: 1px;
+  background: rgba(220, 232, 252, 0.1);
+  border-radius: 999px;
+}
+
+.assistant-panel__conversation {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 0;
+}
+
+.assistant-panel__message {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.assistant-panel__message--user {
+  margin-left: 24px;
+  background: rgba(30, 45, 72, 0.6);
+  border: 1px solid rgba(220, 232, 252, 0.12);
+  color: rgba(245, 250, 255, 0.98);
+}
+
+.assistant-panel__message--assistant {
+  margin-right: 24px;
+  background: rgba(21, 29, 45, 0.72);
+  border: 1px solid rgba(225, 234, 251, 0.14);
+  color: rgba(232, 241, 255, 0.96);
+}
+
+/* Simple buffering indicator when reasoning UI is not used (non-pro models) */
+.assistant-panel__buffer {
+  color: rgba(180, 198, 232, 0.9);
+  font-size: 0.95rem;
+  padding: 4px 0;
+}
+
+.assistant-panel__buffer-dots {
+  display: inline-block;
+  min-width: 1.5em;
+  animation: assistant-buffer-dots 1.2s steps(4, end) infinite;
+}
+
+.assistant-panel__buffer-dots::after {
+  content: '...';
+}
+
+@keyframes assistant-buffer-dots {
+  0%, 25% { opacity: 0.4; }
+  50% { opacity: 0.85; }
+  75%, 100% { opacity: 1; }
+}
+
+.assistant-panel__reasoning {
+  margin-top: 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(220, 232, 252, 0.12);
+  background: rgba(15, 23, 38, 0.6);
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.assistant-panel__reasoning--streaming {
+  border-color: rgba(184, 204, 241, 0.22);
+  box-shadow: 0 0 0 1px rgba(184, 204, 241, 0.08);
+}
+
+.assistant-panel__reasoning-trigger {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: rgba(198, 214, 240, 0.95);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.assistant-panel__reasoning-trigger:hover {
+  color: rgba(232, 241, 255, 0.98);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.assistant-panel__reasoning-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: rgba(180, 198, 232, 0.85);
+  transition: transform 0.2s ease;
+}
+
+.assistant-panel__reasoning--open .assistant-panel__reasoning-icon {
+  color: rgba(198, 214, 240, 0.9);
+}
+
+.assistant-panel__reasoning-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(120, 200, 220, 0.9);
+  flex-shrink: 0;
+  animation: assistant-reasoning-pulse 1.2s ease-in-out infinite;
+}
+
+.assistant-panel__reasoning-label {
+  letter-spacing: 0.02em;
+}
+
+/* Animated collapsible content (grid 0fr → 1fr) */
+.assistant-panel__reasoning-content-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.assistant-panel__reasoning--open .assistant-panel__reasoning-content-wrap {
+  grid-template-rows: 1fr;
+}
+
+.assistant-panel__reasoning-content {
+  overflow: hidden;
+  min-height: 0;
+  padding: 0 14px 12px 14px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: rgba(198, 214, 240, 0.88);
+  white-space: pre-wrap;
+  border-top: 1px solid rgba(220, 232, 252, 0.08);
+}
+
+.assistant-panel__reasoning--open .assistant-panel__reasoning-content {
+  padding-top: 10px;
+}
+
+@keyframes assistant-reasoning-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.92); }
+}
+
+.assistant-panel__input-wrap {
+  flex-shrink: 0;
+  padding: 12px 0 0;
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+.assistant-panel__input {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(220, 232, 252, 0.2);
+  background: rgba(15, 23, 38, 0.72);
+  color: #eef2ff;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: none;
+}
+
+.assistant-panel__input::placeholder {
+  color: rgba(184, 200, 230, 0.6);
+}
+
+.assistant-panel__input:focus {
+  outline: none;
+  border-color: rgba(215, 230, 252, 0.4);
+}
+
+.assistant-panel__submit {
+  flex-shrink: 0;
+  padding: 10px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(184, 204, 241, 0.34);
+  background: rgba(30, 45, 72, 0.94);
+  color: rgba(232, 241, 255, 0.94);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.assistant-panel__submit:hover:not(:disabled) {
+  border-color: rgba(215, 230, 252, 0.74);
+  background: rgba(40, 55, 85, 0.98);
+}
+
+.assistant-panel__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.assistant-panel__error {
+  margin-top: 8px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  color: rgba(248, 180, 180, 0.98);
+  background: rgba(80, 20, 20, 0.4);
+  border-radius: 10px;
+}
+
+.assistant-panel__voice-btn {
+  padding: 6px 10px;
+  margin-left: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(184, 204, 241, 0.34);
+  background: rgba(15, 24, 40, 0.94);
+  color: rgba(232, 241, 255, 0.94);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.assistant-panel__voice-btn:hover {
+  border-color: rgba(215, 230, 252, 0.74);
+  background: rgba(29, 40, 64, 0.98);
+}
+
+.assistant-panel__voice-btn.is-active {
+  border-color: rgba(45, 212, 191, 0.5);
+  background: rgba(20, 60, 55, 0.6);
+  color: rgba(167, 243, 232, 0.98);
+}
+
+.assistant-panel::-webkit-scrollbar,
+.assistant-panel__conversation::-webkit-scrollbar {
+  width: 10px;
+}
+
+.assistant-panel__conversation::-webkit-scrollbar-track {
+  background: rgba(15, 23, 38, 0.72);
+  border-radius: 999px;
+}
+
+.assistant-panel__conversation::-webkit-scrollbar-thumb {
+  background: rgba(198, 214, 240, 0.42);
+  border-radius: 999px;
+  border: 2px solid rgba(15, 23, 38, 0.72);
+}
+
+.assistant-panel__conversation::-webkit-scrollbar-thumb:hover {
+  background: rgba(215, 228, 249, 0.56);
 }
 
 /* ── Hero Stats ────────────────────────────────── */
@@ -1017,6 +1373,31 @@ body {
     max-height: calc(100vh - 120px);
   }
 
+  .assistant-panel-anchor {
+    top: 12px;
+    right: 0;
+    width: calc(100vw - 1rem);
+  }
+
+  .assistant-panel-anchor--collapsed {
+    transform: translateX(calc(100% - 54px));
+  }
+
+  .assistant-panel-shell {
+    margin-right: 8px;
+  }
+
+  .assistant-panel-toggle {
+    top: 46px;
+    left: -26px;
+    width: 34px;
+    height: 34px;
+  }
+
+  .assistant-panel {
+    max-height: calc(100vh - 120px);
+  }
+
   .hero-stats {
     grid-template-columns: 1fr;
   }
@@ -1058,6 +1439,24 @@ body {
   .census-panel-anchor--left.census-panel-anchor--visible,
   .census-panel-anchor--right.census-panel-anchor--visible {
     animation: none;
+  }
+
+  .assistant-panel-anchor--visible {
+    animation: none;
+  }
+
+  .assistant-panel__reasoning-content-wrap {
+    transition: none;
+  }
+
+  .assistant-panel__reasoning-dot {
+    animation: none;
+    opacity: 0.8;
+  }
+
+  .assistant-panel__buffer-dots {
+    animation: none;
+    opacity: 1;
   }
 
   .hero-card__bar-fill,

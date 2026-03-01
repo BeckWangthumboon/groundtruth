@@ -5,6 +5,7 @@ import { SearchBox } from '@mapbox/search-js-react'
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 
 import { AnalysisLoadingOverlay } from './components/AnalysisLoadingOverlay'
+import { AssistantPanel } from './components/AssistantPanel'
 import { CensusDataPanel } from './components/CensusDataPanel'
 import { PersonaChecklistPanel } from './components/PersonaChecklistPanel'
 import { useUserType } from './hooks/useUserType'
@@ -244,6 +245,7 @@ function App() {
         .map(([itemId]) => itemId),
     [checklistState]
   )
+  const [isAssistantPanelCollapsed, setIsAssistantPanelCollapsed] = useState(false)
 
   const censusMutation = useMutation({
     mutationFn: fetchCensusByPoint,
@@ -708,6 +710,7 @@ function App() {
   useEffect(() => {
     if (!showCensusPanel) {
       setIsCensusPanelCollapsed(false)
+      setIsAssistantPanelCollapsed(false)
     }
   }, [showCensusPanel])
 
@@ -729,44 +732,73 @@ function App() {
         <AnalysisLoadingOverlay visible={showAnalysisOverlay} />
 
         {showCensusPanel ? (
-          <div className="analysis-panels">
+          <>
             <section
-              className={`census-panel-anchor census-panel-anchor--left census-panel-anchor--visible${
-                isCensusPanelCollapsed ? ' census-panel-anchor--collapsed' : ''
+              className={`assistant-panel-anchor assistant-panel-anchor--visible${
+                isAssistantPanelCollapsed ? ' assistant-panel-anchor--collapsed' : ''
               }`}
             >
               <button
                 type="button"
-                className="census-panel-toggle"
-                aria-label={isCensusPanelCollapsed ? 'Expand census panel' : 'Collapse census panel'}
-                onClick={() => setIsCensusPanelCollapsed((prev) => !prev)}
+                className="assistant-panel-toggle"
+                aria-label={isAssistantPanelCollapsed ? 'Expand assistant panel' : 'Collapse assistant panel'}
+                onClick={() => setIsAssistantPanelCollapsed((prev) => !prev)}
               >
-                {isCensusPanelCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+                {isAssistantPanelCollapsed ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
               </button>
 
               <div
-                className={`census-panel-shell${
-                  isCensusPanelCollapsed ? ' census-panel-shell--hidden' : ''
+                className={`assistant-panel-shell${
+                  isAssistantPanelCollapsed ? ' assistant-panel-shell--hidden' : ''
                 }`}
-                aria-hidden={isCensusPanelCollapsed}
+                aria-hidden={isAssistantPanelCollapsed}
               >
-                <CensusDataPanel
-                  status={censusStatus}
-                  data={censusData}
-                  errorMessage={censusErrorMessage}
+                <AssistantPanel
+                  censusData={censusData}
                   locationLabel={censusLocationLabel}
                 />
               </div>
             </section>
 
-            <section className="census-panel-anchor census-panel-anchor--right census-panel-anchor--visible">
-              <PersonaChecklistPanel
-                items={checklistItems}
-                checkedState={checklistState}
-                onToggleItem={handleToggleChecklistItem}
-              />
-            </section>
-          </div>
+            <div className="analysis-panels">
+              <section
+                className={`census-panel-anchor census-panel-anchor--left census-panel-anchor--visible${
+                  isCensusPanelCollapsed ? ' census-panel-anchor--collapsed' : ''
+                }`}
+              >
+                <button
+                  type="button"
+                  className="census-panel-toggle"
+                  aria-label={isCensusPanelCollapsed ? 'Expand census panel' : 'Collapse census panel'}
+                  onClick={() => setIsCensusPanelCollapsed((prev) => !prev)}
+                >
+                  {isCensusPanelCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+                </button>
+
+                <div
+                  className={`census-panel-shell${
+                    isCensusPanelCollapsed ? ' census-panel-shell--hidden' : ''
+                  }`}
+                  aria-hidden={isCensusPanelCollapsed}
+                >
+                  <CensusDataPanel
+                    status={censusStatus}
+                    data={censusData}
+                    errorMessage={censusErrorMessage}
+                    locationLabel={censusLocationLabel}
+                  />
+                </div>
+              </section>
+
+              <section className="census-panel-anchor census-panel-anchor--right census-panel-anchor--visible">
+                <PersonaChecklistPanel
+                  items={checklistItems}
+                  checkedState={checklistState}
+                  onToggleItem={handleToggleChecklistItem}
+                />
+              </section>
+            </div>
+          </>
         ) : null}
 
         <div className={`search-shell${hasSearched ? ' search-shell--docked' : ''}`}>

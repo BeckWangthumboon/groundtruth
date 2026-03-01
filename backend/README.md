@@ -30,7 +30,12 @@ With `npm run dev`, the API runs automatically (port 8000); Vite proxies `/api` 
 - `POST /api/chat` – body: `{ message, conversationHistory, focus, useDefaults, ... }`
 - `POST /api/tts` – body: `{ text }`
 
-Set `GOOGLE_GENERATIVE_AI_API_KEY` and `GOOGLE_CLOUD_TTS_API_KEY` for chat/TTS.
+Set `GOOGLE_GENERATIVE_AI_API_KEY` and `GOOGLE_CLOUD_TTS_API_KEY` for chat/TTS. Add them to a `.env` file at the project root; the backend loads `.env` on startup when you run `uv run uvicorn backend.app.main:app` from the repo root.
+
+| Variable | Purpose |
+|----------|--------|
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini API key ([docs](https://ai.google.dev/gemini-api/docs/api-key)) |
+| `GOOGLE_CLOUD_TTS_API_KEY` | Google Cloud Text-to-Speech API key |
 
 ## Frontend integration
 

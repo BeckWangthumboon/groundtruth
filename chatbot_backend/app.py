@@ -42,6 +42,8 @@ class ChatRequestBody(BaseModel):
 class ChatResponseBody(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     reply: str
+    supportsReasoning: bool = Field(True, alias="supportsReasoning")
+    reasoning: str | None = None
     weights: dict[str, float] | None = None
     rankedIds: list[str] | None = Field(None, alias="rankedIds")
     mapKeywords: list[str] | None = Field(None, alias="mapKeywords")

@@ -12,6 +12,20 @@ import {
 } from 'recharts'
 
 const PIE_COLORS = ['#3bc5be', '#f59a84', '#7da8db', '#87d38d', '#d0a6ff', '#f6d36d', '#9cd1ff', '#f2b4e2']
+const TOOLTIP_CONTENT_STYLE = {
+  background: 'rgba(10, 16, 28, 0.96)',
+  border: '1px solid rgba(186, 207, 239, 0.28)',
+  borderRadius: '10px',
+  boxShadow: '0 10px 24px rgba(0, 0, 0, 0.45)',
+}
+const TOOLTIP_LABEL_STYLE = {
+  color: 'rgba(218, 231, 252, 0.92)',
+  fontSize: '12px',
+}
+const TOOLTIP_ITEM_STYLE = {
+  color: 'rgba(233, 243, 255, 0.96)',
+  fontSize: '12px',
+}
 
 function formatPercent(value) {
   if (value == null || !Number.isFinite(value)) {
@@ -30,6 +44,14 @@ function formatCount(value) {
 function renderTooltip(value, _name, item) {
   const row = item?.payload
   return [`${formatPercent(row?.pct)} (${formatCount(row?.value)})`, 'Share']
+}
+
+function truncateLabel(value, maxLength = 18) {
+  const label = String(value ?? '')
+  if (label.length <= maxLength) {
+    return label
+  }
+  return `${label.slice(0, maxLength - 1)}…`
 }
 
 function sectionStyle(sectionId) {
@@ -64,7 +86,12 @@ function PieChartCard({ chart }) {
               <Cell key={`${chart.id}-${row.name}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip formatter={renderTooltip} />
+          <Tooltip
+            formatter={renderTooltip}
+            contentStyle={TOOLTIP_CONTENT_STYLE}
+            labelStyle={TOOLTIP_LABEL_STYLE}
+            itemStyle={TOOLTIP_ITEM_STYLE}
+          />
         </PieChart>
       </ResponsiveContainer>
 
@@ -102,12 +129,19 @@ function BarChartCard({ chart }) {
             <YAxis
               type="category"
               dataKey="shortName"
-              width={128}
+              tickFormatter={truncateLabel}
+              width={132}
               tick={{ fill: 'rgba(232, 241, 255, 0.92)', fontSize: 10 }}
               axisLine={false}
               tickLine={false}
             />
-            <Tooltip formatter={renderTooltip} />
+            <Tooltip
+              formatter={renderTooltip}
+              contentStyle={TOOLTIP_CONTENT_STYLE}
+              labelStyle={TOOLTIP_LABEL_STYLE}
+              itemStyle={TOOLTIP_ITEM_STYLE}
+              cursor={{ fill: 'rgba(114, 156, 215, 0.14)' }}
+            />
             <Bar dataKey="pct" fill="rgba(93, 212, 190, 0.92)" radius={[0, 4, 4, 0]} isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>

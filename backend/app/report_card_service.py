@@ -15,7 +15,7 @@ from .schemas import (
     ReportScore,
 )
 
-REPORT_CARD_MODEL = "gemini-3-flash-preview-latest"
+REPORT_CARD_MODEL = "gemini-3-flash-preview"
 DEFAULT_TIMEOUT_SECONDS = 25.0
 
 DIMENSION_LABELS = {

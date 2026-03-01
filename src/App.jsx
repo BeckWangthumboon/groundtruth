@@ -10,6 +10,7 @@ import { fetchCensusByPoint, fetchPoiReportCard } from './lib/api'
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon'
 import { fetchIsochrone, fetchTilequeryPois } from './lib/mapboxApi'
 import { MapOverlayControls } from './components/MapOverlayControls'
+import { PoiInsightsPanel } from './components/PoiInsightsPanel'
 import { PoiReportCardPanel } from './components/PoiReportCardPanel'
 import { buildPoiReportCardRequest } from './lib/poiReportCard'
 
@@ -345,6 +346,7 @@ function App() {
   const overlayAbortRef = useRef(null)
   const [hoveredPoiGroupKey, setHoveredPoiGroupKey] = useState(null)
   const [selectedPoiCategories, setSelectedPoiCategories] = useState(null) // null = show all
+  const [activePoiTab, setActivePoiTab] = useState(/** @type {'nearby' | 'report'} */ ('nearby'))
   const [poiReportCard, setPoiReportCard] = useState(null)
   const [poiReportStatus, setPoiReportStatus] = useState('idle')
   const [poiReportErrorMessage, setPoiReportErrorMessage] = useState('')
@@ -484,8 +486,11 @@ function App() {
   }, [])
 
   const handlePoiCategoryToggle = useCallback((groupKey) => {
+    let isNowSelected = false
+
     setSelectedPoiCategories(prev => {
       if (!prev) {
+        isNowSelected = true
         return new Set([groupKey])
       }
       const next = new Set(prev)
@@ -493,8 +498,16 @@ function App() {
         next.delete(groupKey)
       } else {
         next.add(groupKey)
+        isNowSelected = true
       }
       return next.size === 0 ? null : next
+    })
+
+    setHoveredPoiGroupKey((current) => {
+      if (isNowSelected) {
+        return groupKey
+      }
+      return current === groupKey ? null : current
     })
   }, [])
 
@@ -887,6 +900,7 @@ function App() {
       setIsochroneData(null)
       setTilequeryData(null)
       setSelectedPoiCategories(null)
+      setActivePoiTab('nearby')
       overlayAbortRef.current?.abort()
       const overlayController = new AbortController()
       overlayAbortRef.current = overlayController
@@ -1104,6 +1118,96 @@ function App() {
   const isPoiReportLoading = poiReportStatus === 'loading' || poiReportMutation.isPending
   const canGeneratePoiReport = nearbyPlaceGroups.length > 0 && !poisLoading && !isPoiReportLoading
 
+  const nearbyPlacesContent = (
+    <>
+      <header className="poi-results-panel__header">
+        <p className="poi-results-panel__title">Nearby Places Found</p>
+        <p className="poi-results-panel__summary">
+          {poisLoading ? 'Searching…' : `${totalNearbyPlaces} places · ${nearbyPlaceGroups.length} groups`}
+        </p>
+      </header>
+
+      {nearbyPlaceGroups.length > 0 && !poisLoading && (
+        <div className="poi-category-chips">
+          {nearbyPlaceGroups.map(group => (
+            <button
+              key={group.key}
+              type="button"
+              className={`poi-chip${selectedPoiCategories?.has(group.key) ? ' poi-chip--active' : ''}`}
+              onClick={() => handlePoiCategoryToggle(group.key)}
+            >
+              {group.label}
+              <span className="poi-chip__count">{group.count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {poisLoading ? (
+        <p className="poi-results-panel__status">Loading nearby places from Mapbox…</p>
+      ) : nearbyPlaceGroups.length > 0 ? (
+        <ol className="poi-results-panel__list">
+          {nearbyPlaceGroups.map((group) => {
+            const isActive = hoveredPoiGroupKey === group.key
+            return (
+              <li
+                key={group.key}
+                tabIndex={0}
+                className={`poi-results-panel__item${
+                  isActive ? ' poi-results-panel__item--active' : ''
+                }`}
+                onMouseEnter={() => setHoveredPoiGroupKey(group.key)}
+                onMouseLeave={() =>
+                  setHoveredPoiGroupKey((current) =>
+                    current === group.key ? null : current
+                  )
+                }
+                onFocus={() => setHoveredPoiGroupKey(group.key)}
+                onBlur={() =>
+                  setHoveredPoiGroupKey((current) =>
+                    current === group.key ? null : current
+                  )
+                }
+                onClick={() => {
+                  const groupFeatures = filteredTilequeryData.features.filter(
+                    f => f.properties?.ui_group_key === group.key
+                  )
+                  if (groupFeatures.length === 0 || !mapInstance) return
+
+                  const coords = groupFeatures.map(f => f.geometry.coordinates)
+                  const lngs = coords.map(c => c[0])
+                  const lats = coords.map(c => c[1])
+                  const bounds = [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]]
+                  mapInstance.fitBounds(bounds, { padding: 80, maxZoom: 16, duration: 800 })
+                  setHoveredPoiGroupKey(group.key)
+                }}
+              >
+                <p className="poi-results-panel__name">{group.label}</p>
+                <p className="poi-results-panel__count">Count = {group.count}</p>
+              </li>
+            )
+          })}
+        </ol>
+      ) : (
+        <p className="poi-results-panel__status">
+          No places were returned near this area. Try searching another point.
+        </p>
+      )}
+    </>
+  )
+
+  const reportCardContent = (
+    <PoiReportCardPanel
+      status={poiReportStatus}
+      report={poiReportCard}
+      errorMessage={poiReportErrorMessage}
+      onGenerate={handleGeneratePoiReportCard}
+      disabled={!canGeneratePoiReport}
+      hasGroups={nearbyPlaceGroups.length > 0}
+      embedded
+    />
+  )
+
   useEffect(() => {
     if (!showCensusPanel) {
       setIsCensusPanelCollapsed(false)
@@ -1165,91 +1269,11 @@ function App() {
 
         {hasSearched && (
           <div className="map-right-rail">
-            <aside className="poi-results-panel" aria-live="polite">
-              <header className="poi-results-panel__header">
-                <p className="poi-results-panel__title">Nearby Places Found</p>
-                <p className="poi-results-panel__summary">
-                  {poisLoading
-                    ? 'Searching…'
-                    : `${totalNearbyPlaces} places · ${nearbyPlaceGroups.length} groups`}
-                </p>
-              </header>
-
-              {nearbyPlaceGroups.length > 0 && !poisLoading && (
-                <div className="poi-category-chips">
-                  {nearbyPlaceGroups.map(group => (
-                    <button
-                      key={group.key}
-                      type="button"
-                      className={`poi-chip${selectedPoiCategories?.has(group.key) ? ' poi-chip--active' : ''}`}
-                      onClick={() => handlePoiCategoryToggle(group.key)}
-                    >
-                      {group.label}
-                      <span className="poi-chip__count">{group.count}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {poisLoading ? (
-                <p className="poi-results-panel__status">Loading nearby places from Mapbox…</p>
-              ) : nearbyPlaceGroups.length > 0 ? (
-                <ol className="poi-results-panel__list">
-                  {nearbyPlaceGroups.map((group) => {
-                    const isActive = hoveredPoiGroupKey === group.key
-                    return (
-                      <li
-                        key={group.key}
-                        tabIndex={0}
-                        className={`poi-results-panel__item${
-                          isActive ? ' poi-results-panel__item--active' : ''
-                        }`}
-                        onMouseEnter={() => setHoveredPoiGroupKey(group.key)}
-                        onMouseLeave={() =>
-                          setHoveredPoiGroupKey((current) =>
-                            current === group.key ? null : current
-                          )
-                        }
-                        onFocus={() => setHoveredPoiGroupKey(group.key)}
-                        onBlur={() =>
-                          setHoveredPoiGroupKey((current) =>
-                            current === group.key ? null : current
-                          )
-                        }
-                        onClick={() => {
-                          const groupFeatures = filteredTilequeryData.features.filter(
-                            f => f.properties?.ui_group_key === group.key
-                          )
-                          if (groupFeatures.length === 0 || !mapInstance) return
-
-                          const coords = groupFeatures.map(f => f.geometry.coordinates)
-                          const lngs = coords.map(c => c[0])
-                          const lats = coords.map(c => c[1])
-                          const bounds = [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]]
-                          mapInstance.fitBounds(bounds, { padding: 80, maxZoom: 16, duration: 800 })
-                          setHoveredPoiGroupKey(group.key)
-                        }}
-                      >
-                        <p className="poi-results-panel__name">{group.label}</p>
-                        <p className="poi-results-panel__count">Count = {group.count}</p>
-                      </li>
-                    )
-                  })}
-                </ol>
-              ) : (
-                <p className="poi-results-panel__status">
-                  No places were returned near this area. Try searching another point.
-                </p>
-              )}
-            </aside>
-
-            <PoiReportCardPanel
-              status={poiReportStatus}
-              report={poiReportCard}
-              errorMessage={poiReportErrorMessage}
-              onGenerate={handleGeneratePoiReportCard}
-              disabled={!canGeneratePoiReport}
-              hasGroups={nearbyPlaceGroups.length > 0}
+            <PoiInsightsPanel
+              activeTab={activePoiTab}
+              onTabChange={setActivePoiTab}
+              nearbyContent={nearbyPlacesContent}
+              reportContent={reportCardContent}
             />
 
             <MapOverlayControls

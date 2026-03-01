@@ -105,6 +105,225 @@
   pointer-events: auto;
 }
 
+/* -----------------------------------------------------------------
+   Simulation panel
+   ----------------------------------------------------------------- */
+
+.area3d-sim-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(380px, calc(100vw - 2rem));
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(236, 243, 252, 0.14);
+  background: rgba(14, 21, 34, 0.82);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+}
+
+.area3d-sim-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.area3d-sim-title {
+  margin: 0;
+  color: #edf3ff;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.area3d-sim-count {
+  color: rgba(210, 222, 243, 0.7);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.area3d-sim-loading {
+  color: rgba(255, 200, 100, 0.8);
+  font-size: 0.78rem;
+}
+
+.area3d-sim-empty {
+  color: rgba(210, 222, 243, 0.55);
+  font-size: 0.82rem;
+  margin: 0;
+  text-align: center;
+  padding: 8px 0;
+}
+
+/* Day-type toggle */
+
+.area3d-sim-day-toggle {
+  display: flex;
+  gap: 6px;
+}
+
+.area3d-sim-day-btn {
+  flex: 1;
+  height: 30px;
+  border: 1px solid rgba(236, 243, 252, 0.2);
+  border-radius: 8px;
+  background: rgba(22, 31, 49, 0.6);
+  color: rgba(210, 222, 243, 0.8);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 140ms, border-color 140ms, color 140ms;
+}
+
+.area3d-sim-day-btn:hover {
+  background: rgba(30, 42, 64, 0.8);
+}
+
+.area3d-sim-day-btn--active {
+  border-color: rgba(255, 160, 40, 0.7);
+  background: rgba(255, 140, 0, 0.15);
+  color: #ffc870;
+}
+
+/* -----------------------------------------------------------------
+   TimeSlider styles (referenced by TimeSlider.jsx)
+   ----------------------------------------------------------------- */
+
+.sim-time-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sim-time-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.sim-time-label {
+  color: rgba(210, 222, 243, 0.65);
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sim-time-display {
+  color: #edf3ff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sim-time-track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sim-time-tick {
+  color: rgba(200, 215, 240, 0.45);
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.sim-time-range {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(200, 215, 240, 0.15);
+  outline: none;
+  cursor: pointer;
+}
+
+.sim-time-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ff8c00;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 6px rgba(255, 140, 0, 0.5);
+  cursor: grab;
+}
+
+.sim-time-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ff8c00;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 6px rgba(255, 140, 0, 0.5);
+  cursor: grab;
+}
+
+.sim-play-button {
+  align-self: flex-start;
+  height: 28px;
+  padding: 0 14px;
+  border: 1px solid rgba(236, 243, 252, 0.2);
+  border-radius: 8px;
+  background: rgba(22, 31, 49, 0.6);
+  color: rgba(210, 222, 243, 0.85);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 140ms, border-color 140ms;
+}
+
+.sim-play-button:hover {
+  background: rgba(30, 42, 64, 0.8);
+}
+
+.sim-play-button--active {
+  border-color: rgba(255, 160, 40, 0.6);
+  background: rgba(255, 140, 0, 0.12);
+  color: #ffc870;
+}
+
+/* -----------------------------------------------------------------
+   Crowd chart
+   ----------------------------------------------------------------- */
+
+.crowd-chart-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.crowd-chart-title {
+  margin: 0;
+  color: rgba(210, 222, 243, 0.65);
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.crowd-chart-tooltip {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(14, 21, 34, 0.92);
+  border: 1px solid rgba(236, 243, 252, 0.12);
+  backdrop-filter: blur(8px);
+}
+
+.crowd-chart-tooltip p {
+  margin: 0;
+  color: rgba(220, 230, 248, 0.9);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+/* -----------------------------------------------------------------
+   Responsive
+   ----------------------------------------------------------------- */
+
 @media (max-width: 640px) {
   .area3d-ui-layer {
     gap: 8px;
@@ -113,6 +332,10 @@
   .area3d-hint,
   .area3d-alerts,
   .area3d-alert--error {
+    width: calc(100vw - 1.5rem);
+  }
+
+  .area3d-sim-panel {
     width: calc(100vw - 1.5rem);
   }
 }

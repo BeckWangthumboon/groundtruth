@@ -18,7 +18,7 @@ REQUEST_PAYLOAD = {
 }
 
 MOCK_REPORT = {
-    "model": "gemini-3-flash-preview-latest",
+    "model": "gemini-3-flash-preview",
     "generated_at": "2026-03-01T15:20:00+00:00",
     "overall": {"score": 8, "reason": "Balanced mix of amenities with strong transit and shopping."},
     "dimensions": {
@@ -64,7 +64,7 @@ def test_poi_report_card_returns_200_and_expected_shape():
     assert resp.status_code == 200
 
     data = resp.json()
-    assert data["model"] == "gemini-3-flash-preview-latest"
+    assert data["model"] == "gemini-3-flash-preview"
     assert data["overall"]["score"] == 8
     assert "generated_at" in data
 

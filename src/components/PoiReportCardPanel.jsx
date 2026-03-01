@@ -32,14 +32,16 @@ export function PoiReportCardPanel({
   onGenerate,
   disabled,
   hasGroups,
+  embedded = false,
 }) {
   const updatedAt = formatGeneratedAt(report?.generated_at)
   const overallScore = report?.overall?.score
   const overallReason = report?.overall?.reason
   const categories = Array.isArray(report?.poi_categories) ? report.poi_categories : []
+  const panelClassName = `poi-report-panel${embedded ? ' poi-report-panel--embedded' : ''}`
 
   return (
-    <aside className="poi-report-panel" aria-live="polite">
+    <section className={panelClassName} aria-live="polite">
       <header className="poi-report-panel__header">
         <p className="poi-report-panel__title">POI Report Card</p>
         {updatedAt ? <p className="poi-report-panel__summary">Updated {updatedAt}</p> : null}
@@ -125,6 +127,6 @@ export function PoiReportCardPanel({
           </section>
         </div>
       ) : null}
-    </aside>
+    </section>
   )
 }

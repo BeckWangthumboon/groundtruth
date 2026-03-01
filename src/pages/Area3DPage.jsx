@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
+import { MapboxOverlay } from '@deck.gl/mapbox'
+import { ScatterplotLayer } from '@deck.gl/layers'
 import { MapPin } from 'lucide-react'
 
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -12,6 +14,10 @@ import {
   LONGITUDE_LIMIT,
   squareBoundsFromCenter,
 } from '@/lib/geoSquare'
+import { fetchTilequeryPois } from '@/lib/mapboxApi'
+import { computeWeight } from '@/lib/simulation/engine'
+import { TimeSlider } from '@/components/simulation/TimeSlider'
+import { CrowdChart } from '@/components/simulation/CrowdChart'
 
 const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN
 const RADIUS_OPTIONS_KM = [0.1, 0.25, 0.5, 1]
@@ -20,6 +26,72 @@ const CAMERA_PITCH = 60
 const CAMERA_BEARING = -45
 const TERRAIN_SOURCE_ID = 'area-3d-terrain-source'
 const BUILDINGS_LAYER_ID = 'area-3d-buildings'
+
+// ---------------------------------------------------------------------------
+// Fast-food filtering
+// ---------------------------------------------------------------------------
+
+const FAST_FOOD_KEYWORDS = ['fast food', 'burger', 'pizza', 'fried chicken', 'sandwich']
+
+function isFastFood(feature) {
+  const props = feature?.properties ?? {}
+  const rawValues = [props.category_en, props.category, props.class, props.type, props.maki]
+  const tokens = rawValues
+    .flatMap((v) => (typeof v === 'string' ? v.split(/[;,/|]/) : []))
+    .map((v) =>
+      v
+        .trim()
+        .toLowerCase()
+        .replace(/[_-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+    )
+    .filter(Boolean)
+
+  return tokens.some((token) =>
+    FAST_FOOD_KEYWORDS.some((kw) => {
+      const t = token.trim().toLowerCase()
+      return t === kw || t.startsWith(kw + ' ') || t.endsWith(' ' + kw) || t.includes(' ' + kw + ' ')
+    })
+  )
+}
+
+function filterFastFood(features) {
+  return features.filter(isFastFood).map((f) => ({
+    lng: f.geometry.coordinates[0],
+    lat: f.geometry.coordinates[1],
+    name: f.properties?.name ?? 'Fast Food',
+    type: 'food',
+  }))
+}
+
+// ---------------------------------------------------------------------------
+// Agent generation
+// ---------------------------------------------------------------------------
+
+const MAX_AGENTS_PER_POI = 15
+const SCATTER_RADIUS_DEG = 0.0003 // ~30 m
+
+function generateAgents(pois, hour, dayType) {
+  const agents = []
+  for (const poi of pois) {
+    const weight = computeWeight(poi, hour, dayType, 'business', 1.0)
+    const count = Math.round(weight * MAX_AGENTS_PER_POI)
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2
+      const dist = Math.random() * SCATTER_RADIUS_DEG
+      agents.push({
+        lng: poi.lng + Math.cos(angle) * dist,
+        lat: poi.lat + Math.sin(angle) * dist * 0.8,
+        weight,
+      })
+    }
+  }
+  return agents
+}
+
+// ---------------------------------------------------------------------------
+// Helpers (unchanged from original)
+// ---------------------------------------------------------------------------
 
 const parseCoordinate = (rawValue, label, defaultValue, min, max) => {
   if (rawValue == null || rawValue.trim() === '') {
@@ -109,12 +181,24 @@ const add3DBuildings = (map) => {
   )
 }
 
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 function Area3DPage() {
   const mapContainerRef = useRef(null)
   const mapRef = useRef(null)
+  const overlayRef = useRef(null)
   const selectedRadiusRef = useRef(DEFAULT_RADIUS_KM)
 
   const [selectedRadiusKm, setSelectedRadiusKm] = useState(DEFAULT_RADIUS_KM)
+
+  // Simulation state
+  const [fastFoodPois, setFastFoodPois] = useState([])
+  const [currentHour, setCurrentHour] = useState(12)
+  const [dayType, setDayType] = useState('weekday')
+  const [agents, setAgents] = useState([])
+  const [poisLoading, setPoisLoading] = useState(false)
 
   const { latitude, longitude, warnings } = useMemo(() => {
     const params = new URLSearchParams(window.location.search)
@@ -187,7 +271,6 @@ function Area3DPage() {
       pitch: CAMERA_PITCH,
       bearing: CAMERA_BEARING,
       antialias: true,
-      // Keep map interactions enabled for manual area exploration
       interactive: true,
       minPitch: 0,
       maxPitch: 85,
@@ -226,6 +309,15 @@ function Area3DPage() {
       } catch (error) {
         console.warn('Unable to add 3D buildings layer for area 3D view.', error)
       }
+
+      // deck.gl overlay
+      try {
+        const overlay = new MapboxOverlay({ interleaved: true, layers: [] })
+        map.addControl(overlay)
+        overlayRef.current = overlay
+      } catch (error) {
+        console.warn('Unable to initialise deck.gl overlay.', error)
+      }
     })
 
     const handleResize = () => applyRadiusBounds(map, selectedRadiusRef.current, 0)
@@ -234,6 +326,10 @@ function Area3DPage() {
     return () => {
       window.removeEventListener('resize', handleResize)
       centerMarker.remove()
+      if (overlayRef.current && map.hasControl(overlayRef.current)) {
+        map.removeControl(overlayRef.current)
+      }
+      overlayRef.current = null
       map.remove()
       mapRef.current = null
     }
@@ -246,6 +342,78 @@ function Area3DPage() {
     }
     applyRadiusBounds(map, selectedRadiusKm, 600)
   }, [applyRadiusBounds, selectedRadiusKm])
+
+  // -------------------------------------------------------------------------
+  // Fetch & filter Fast Food POIs
+  // -------------------------------------------------------------------------
+
+  useEffect(() => {
+    const controller = new AbortController()
+    setPoisLoading(true)
+
+    fetchTilequeryPois({
+      lon: longitude,
+      lat: latitude,
+      radius: selectedRadiusKm * 1000,
+      signal: controller.signal,
+    })
+      .then((fc) => {
+        setFastFoodPois(filterFastFood(fc.features))
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError') console.warn('POI fetch failed:', err)
+      })
+      .finally(() => setPoisLoading(false))
+
+    return () => controller.abort()
+  }, [latitude, longitude, selectedRadiusKm])
+
+  // -------------------------------------------------------------------------
+  // Agent generation + drift animation
+  // -------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (fastFoodPois.length === 0) {
+      setAgents([])
+      return undefined
+    }
+
+    setAgents(generateAgents(fastFoodPois, currentHour, dayType))
+
+    const interval = setInterval(() => {
+      setAgents(generateAgents(fastFoodPois, currentHour, dayType))
+    }, 2000)
+
+    return () => clearInterval(interval)
+  }, [fastFoodPois, currentHour, dayType])
+
+  // -------------------------------------------------------------------------
+  // Update deck.gl layers
+  // -------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (!overlayRef.current) return
+
+    const layer = new ScatterplotLayer({
+      id: 'crowd-agents',
+      data: agents,
+      getPosition: (d) => [d.lng, d.lat],
+      getRadius: 3,
+      getFillColor: [255, 140, 0, 200],
+      radiusUnits: 'meters',
+      radiusMinPixels: 2,
+      radiusMaxPixels: 6,
+      transitions: {
+        getPosition: 1800,
+      },
+    })
+
+    overlayRef.current.setProps({ layers: [layer] })
+  }, [agents])
+
+  // -------------------------------------------------------------------------
+  // Render
+  // -------------------------------------------------------------------------
 
   return (
     <div className="app-shell app-shell--searched area3d-shell">
@@ -281,7 +449,39 @@ function Area3DPage() {
           })}
         </section>
 
-        <p className="area3d-hint">Pass coordinates as ?lat=&lt;value&gt;&amp;lon=&lt;value&gt;.</p>
+        {/* Simulation panel */}
+        <section className="area3d-sim-panel">
+          <div className="area3d-sim-header">
+            <p className="area3d-sim-title">Fast Food Crowd Sim</p>
+            {poisLoading ? (
+              <span className="area3d-sim-loading">Loading...</span>
+            ) : (
+              <span className="area3d-sim-count">{fastFoodPois.length} locations</span>
+            )}
+          </div>
+
+          {fastFoodPois.length === 0 && !poisLoading && (
+            <p className="area3d-sim-empty">No fast food locations found in this area.</p>
+          )}
+
+          {/* Day type toggle */}
+          <div className="area3d-sim-day-toggle">
+            {['weekday', 'weekend'].map((d) => (
+              <button
+                key={d}
+                type="button"
+                className={`area3d-sim-day-btn${dayType === d ? ' area3d-sim-day-btn--active' : ''}`}
+                onClick={() => setDayType(d)}
+              >
+                {d.charAt(0).toUpperCase() + d.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          <TimeSlider currentHour={currentHour} onTimeChange={setCurrentHour} />
+
+          <CrowdChart currentHour={currentHour} dayType={dayType} />
+        </section>
 
         {warnings.length > 0 && (
           <ul className="area3d-alerts">

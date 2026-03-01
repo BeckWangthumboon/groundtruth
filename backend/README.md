@@ -1,4 +1,10 @@
-# FastAPI Census Backend
+# FastAPI Backend (Census + optional Chat/TTS)
+
+Single API served by `backend.app.main`. When chatbot dependencies are installed and `chatbot_backend` is importable, the same process also serves:
+
+- `POST /api/chat` – location assistant (Gemini)
+- `POST /api/tts` – text-to-speech (Google Cloud TTS)
+- `GET /health` – chatbot health (main app uses `GET /healthz`)
 
 ## Run locally
 
@@ -7,15 +13,29 @@ uv sync
 uv run uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-## Endpoint
+With `npm run dev`, the API runs automatically (port 8000); Vite proxies `/api` to it.
 
+## Endpoints (Census)
+
+- `GET /healthz`
 - `GET /api/census/by-point?lat=<LAT>&lon=<LON>&acs=latest&include_parents=true`
+- `GET /api/pois/nearby?lat=&lon=&radius_m=800`
+- `GET /api/pois/dynamic?lat=&lon=&selected_labels=essentials_nearby,transit_access&radius_m=1200&include_nodes=true`
+  - If `selected_labels` includes `direct_competition`, include `business_type=<type>`.
+- `GET /api/census/tract-geo?lat=&lon=`
 
-Example:
+## Endpoints (Chat, when chatbot_backend is available)
 
-```bash
-curl 'http://127.0.0.1:8000/api/census/by-point?lat=43.074&lon=-89.384'
-```
+- `GET /health`
+- `POST /api/chat` – body: `{ message, conversationHistory, focus, useDefaults, ... }`
+- `POST /api/tts` – body: `{ text }`
+
+Set `GOOGLE_GENERATIVE_AI_API_KEY` and `GOOGLE_CLOUD_TTS_API_KEY` for chat/TTS. Add them to a `.env` file at the project root; the backend loads `.env` on startup when you run `uv run uvicorn backend.app.main:app` from the repo root.
+
+| Variable | Purpose |
+|----------|--------|
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini API key ([docs](https://ai.google.dev/gemini-api/docs/api-key)) |
+| `GOOGLE_CLOUD_TTS_API_KEY` | Google Cloud Text-to-Speech API key |
 
 ## Frontend integration
 

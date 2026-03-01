@@ -24,6 +24,9 @@ When the main backend runs, it imports and mounts `chat_router` from `chatbot_ba
 ## UI Design
 What do you think the design of the ai should look? Imitate the current design of the bar on the left I want it to be able to slide in and out on the right side. There should be a window that we uses where that bot is located in. The user could also enable the voice agent on a button, who could speak out the content from the llm text. 
 
+Consider the ai components without using the tailwind css:
+- Reasoning: https://elements.ai-sdk.dev/components/reasoning
+
 
 ## Purpose, Main
 1. give a reason out why the certain score is what it is.

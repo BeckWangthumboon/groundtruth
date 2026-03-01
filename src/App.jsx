@@ -15,7 +15,7 @@ const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN
 const center = /** @type {[number, number]} */ ([-45, 30])
 const secondsPerRevolution = 160
 const maxSpinZoom = 3.4
-const homeZoom = 1.65
+const homeZoom = 2.4
 const streetLevelZoom = 17.5
 
 const toFiniteNumber = (value) => {
@@ -551,7 +551,10 @@ function App() {
     >
       <div id="map-container" ref={mapContainerRef} />
       <div className="hero-wordmark-layer" aria-hidden="true">
-        <p className="hero-wordmark rubik-mono-one-regular">Ground Truth</p>
+        <p className="hero-wordmark rubik-mono-one-regular">
+          <span>Ground</span>
+          <span>Truth</span>
+        </p>
       </div>
 
       <main className="ui-layer">

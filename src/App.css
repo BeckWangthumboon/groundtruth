@@ -83,15 +83,18 @@ body {
   text-align: center;
   letter-spacing: clamp(0.18em, 1.2vw, 0.52em);
   font-size: clamp(2.6rem, 11vw, 8.8rem);
-  line-height: 0.9;
-  color: rgba(216, 229, 255, 0.28);
+  line-height: .9;
+  color: rgba(226, 239, 255, 0.55);
   text-shadow:
-    0 0 26px rgba(178, 202, 255, 0.35),
-    0 0 62px rgba(154, 185, 255, 0.2);
+    0 0 26px rgba(188, 212, 255, 0.65),
+    0 0 62px rgba(164, 195, 255, 0.5);
   filter: blur(22px);
   opacity: 0;
   transform: translateY(22px) scale(1.03);
   animation: hero-wordmark-reveal 1600ms cubic-bezier(0.16, 1, 0.3, 1) 320ms forwards;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 1vw, 2.5rem);
 }
 
 .app-shell--hero-cleared .hero-wordmark {

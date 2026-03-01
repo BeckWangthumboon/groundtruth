@@ -7,7 +7,6 @@ import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { AnalysisLoadingOverlay } from './components/AnalysisLoadingOverlay'
 import { AssistantPanel } from './components/AssistantPanel'
 import { CensusDataPanel } from './components/CensusDataPanel'
-import { PersonaChecklistPanel } from './components/PersonaChecklistPanel'
 import { useUserType } from './hooks/useUserType'
 import { fetchCensusByPoint, fetchDynamicPois } from './lib/api'
 import {
@@ -756,6 +755,9 @@ function App() {
                 <AssistantPanel
                   censusData={censusData}
                   locationLabel={censusLocationLabel}
+                  checklistItems={checklistItems}
+                  checklistState={checklistState}
+                  onToggleChecklistItem={handleToggleChecklistItem}
                 />
               </div>
             </section>
@@ -788,14 +790,6 @@ function App() {
                     locationLabel={censusLocationLabel}
                   />
                 </div>
-              </section>
-
-              <section className="census-panel-anchor census-panel-anchor--right census-panel-anchor--visible">
-                <PersonaChecklistPanel
-                  items={checklistItems}
-                  checkedState={checklistState}
-                  onToggleItem={handleToggleChecklistItem}
-                />
               </section>
             </div>
           </>

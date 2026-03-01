@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Volume2, VolumeX, ChevronRight, ChevronDown } from 'lucide-react'
 import { postChat, postTts } from '../lib/api'
 import { buildLocationContextForChat } from '../lib/locationContextForChat'
@@ -62,15 +62,34 @@ function ReasoningBlock({ reasoningText, defaultOpen = false, id, isStreaming = 
   )
 }
 
-export function AssistantPanel({ censusData = null, locationLabel = '' }) {
+/**
+ * @param {{
+ *   censusData?: unknown
+ *   locationLabel?: string
+ *   checklistItems?: readonly { id: string, label: string }[]
+ *   checklistState?: Record<string, boolean>
+ *   onToggleChecklistItem?: ((itemId: string) => void) | null
+ * }} props
+ */
+export function AssistantPanel({
+  censusData = null,
+  locationLabel = '',
+  checklistItems = [],
+  checklistState = {},
+  onToggleChecklistItem = null,
+}) {
   const [messages, setMessages] = useState([])
   const [inputValue, setInputValue] = useState('')
   const [supportReasoningUI, setSupportsReasoningUI] = useState(false)
-  const [focus, setFocus] = useState('tenant')
   const [voiceEnabled, setVoiceEnabled] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [isChecklistOpen, setIsChecklistOpen] = useState(false)
   const conversationRef = useRef(null)
+  const checkedChecklistCount = useMemo(
+    () => checklistItems.filter((item) => Boolean(checklistState?.[item.id])).length,
+    [checklistItems, checklistState]
+  )
 
   const scrollToBottom = useCallback(() => {
     const el = conversationRef.current
@@ -107,7 +126,7 @@ export function AssistantPanel({ censusData = null, locationLabel = '' }) {
         const result = await postChat({
           message: text,
           conversationHistory,
-          focus,
+          focus: 'tenant',
           useDefaults: true,
           weights: null,
           locationsWithMetrics: locationsWithMetrics.length > 0 ? locationsWithMetrics : null,
@@ -145,7 +164,7 @@ export function AssistantPanel({ censusData = null, locationLabel = '' }) {
         setIsLoading(false)
       }
     },
-    [inputValue, isLoading, messages, focus, voiceEnabled, censusData, locationLabel]
+    [inputValue, isLoading, messages, voiceEnabled, censusData, locationLabel]
   )
 
   return (
@@ -153,23 +172,8 @@ export function AssistantPanel({ censusData = null, locationLabel = '' }) {
       <header className="assistant-panel__header">
         <h2 className="assistant-panel__location">Location Assistant</h2>
         <p className="assistant-panel__subtitle">Ask about locations, scores, and comparisons</p>
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-          <select
-            aria-label="Focus mode"
-            value={focus}
-            onChange={(e) => setFocus(e.target.value)}
-            style={{
-              padding: '6px 10px',
-              borderRadius: 10,
-              border: '1px solid rgba(184, 204, 241, 0.34)',
-              background: 'rgba(15, 24, 40, 0.94)',
-              color: 'rgba(232, 241, 255, 0.94)',
-              fontSize: '0.8rem',
-            }}
-          >
-            <option value="tenant">Tenant</option>
-            <option value="small_business">Small business</option>
-          </select>
+
+        <div className="assistant-panel__controls">
           <button
             type="button"
             className={`assistant-panel__voice-btn${voiceEnabled ? ' is-active' : ''}`}
@@ -177,12 +181,60 @@ export function AssistantPanel({ censusData = null, locationLabel = '' }) {
             aria-label={voiceEnabled ? 'Voice on (speak replies)' : 'Voice off'}
             aria-pressed={voiceEnabled}
             title={voiceEnabled ? 'Voice on: replies will be spoken' : 'Voice off'}
-            style={{ display: 'inline-flex', alignItems: 'center' }}
           >
             {voiceEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
             <span style={{ marginLeft: 4 }}>{voiceEnabled ? 'Voice on' : 'Voice off'}</span>
           </button>
+
+          <div className={`assistant-panel__checklist${isChecklistOpen ? ' is-open' : ''}`}>
+            <button
+              type="button"
+              className="assistant-panel__voice-btn assistant-panel__checklist-trigger"
+              aria-expanded={isChecklistOpen}
+              aria-controls="assistant-checklist-menu"
+              onClick={() => setIsChecklistOpen((prev) => !prev)}
+            >
+              <span>Key Points</span>
+              <span className="assistant-panel__checklist-meta">
+                {checkedChecklistCount}/{checklistItems.length}
+              </span>
+              <span
+                className={`assistant-panel__checklist-chevron${
+                  isChecklistOpen ? ' assistant-panel__checklist-chevron--open' : ''
+                }`}
+                aria-hidden
+              >
+                <ChevronDown size={14} />
+              </span>
+            </button>
+          </div>
         </div>
+
+        {isChecklistOpen ? (
+          <div id="assistant-checklist-menu" className="assistant-panel__checklist-menu">
+            <ul className="persona-checklist" aria-label="POI checklist">
+              {checklistItems.map((item) => {
+                const isChecked = Boolean(checklistState?.[item.id])
+                return (
+                  <li
+                    key={item.id}
+                    className={`persona-checklist__item${isChecked ? ' is-checked' : ''}`}
+                  >
+                    <label className="persona-checklist__label">
+                      <input
+                        className="persona-checklist__checkbox"
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => onToggleChecklistItem?.(item.id)}
+                      />
+                      <span className="persona-checklist__text">{item.label}</span>
+                    </label>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ) : null}
         <div className="assistant-panel__divider" />
       </header>
 

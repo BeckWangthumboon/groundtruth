@@ -178,8 +178,8 @@ body {
   left: 24px;
   right: 24px;
   display: grid;
-  grid-template-columns: minmax(320px, 520px) minmax(210px, 245px);
-  justify-content: space-between;
+  grid-template-columns: minmax(320px, 520px);
+  justify-content: start;
   gap: 12px;
   pointer-events: none;
 }
@@ -508,6 +508,57 @@ body {
   border-radius: 999px;
 }
 
+.assistant-panel__controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.assistant-panel__checklist {
+  display: inline-flex;
+  align-items: center;
+}
+
+.assistant-panel__checklist-trigger {
+  margin-left: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.assistant-panel__checklist-meta {
+  margin-left: auto;
+  font-size: 0.74rem;
+  color: rgba(188, 207, 238, 0.86);
+  font-weight: 500;
+}
+
+.assistant-panel__checklist-chevron {
+  color: rgba(198, 214, 240, 0.9);
+  display: inline-flex;
+  transition: transform 180ms ease;
+}
+
+.assistant-panel__checklist-chevron--open {
+  transform: rotate(180deg);
+}
+
+.assistant-panel__checklist-menu {
+  margin-top: 8px;
+  border: 1px solid rgba(218, 229, 249, 0.12);
+  border-radius: 12px;
+  background: rgba(9, 15, 27, 0.64);
+  padding: 7px;
+  max-height: 200px;
+  overflow: auto;
+}
+
+.assistant-panel__checklist-menu .persona-checklist {
+  margin: 0;
+}
+
 .assistant-panel__conversation {
   flex: 1;
   min-height: 0;
@@ -717,8 +768,9 @@ body {
 }
 
 .assistant-panel__voice-btn {
+  display: inline-flex;
+  align-items: center;
   padding: 6px 10px;
-  margin-left: 8px;
   border-radius: 10px;
   border: 1px solid rgba(184, 204, 241, 0.34);
   background: rgba(15, 24, 40, 0.94);

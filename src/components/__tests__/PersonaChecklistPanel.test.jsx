@@ -18,7 +18,7 @@ describe('PersonaChecklistPanel', () => {
       />
     )
 
-    expect(screen.getByText('Checklist')).toBeInTheDocument()
+    expect(screen.getByText('Key Points')).toBeInTheDocument()
     expect(screen.queryByText('Small Biz')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Transit access')).toBeInTheDocument()
     expect(screen.getByLabelText('Parking access')).toBeInTheDocument()

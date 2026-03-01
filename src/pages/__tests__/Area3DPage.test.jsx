@@ -181,7 +181,7 @@ describe('Area3DPage – time slider interactions', () => {
     await act(async () => {
       renderPage()
     })
-    const slider = screen.getByRole('slider', { name: /hour/i })
+    const slider = /** @type {HTMLInputElement} */ (screen.getByRole('slider', { name: /hour/i }))
     expect(slider.value).toBe('12')
   })
 

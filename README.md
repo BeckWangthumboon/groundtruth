@@ -47,6 +47,37 @@ npm run area3d -- --base-url http://localhost:5173
 
 The command prints the final `area-3d.html` URL and optionally opens it in your browser when `--open` is provided.
 
+## Foot Traffic Simulation
+
+The Area 3D page now includes a real-time foot traffic simulation powered by OpenStreetMap POI data and Gaussian mixture models.
+
+### How it works
+
+1. On load, the page fetches nearby POIs from `/api/pois/nearby` (up to 150 points, 800 m radius by default) and the Census tract boundary from `/api/census/tract-geo`.
+2. The simulation engine (`src/lib/simulation/engine.js`) computes a 0–1 weight for each POI at every time step using Gaussian mixture profiles calibrated to POI category (food, retail, nightlife, services, leisure, office) and day type (weekday/weekend).
+3. deck.gl layers (Heatmap, Hexagon, Scatter, Tract Boundary) are rendered as a `MapboxOverlay` on top of the existing Mapbox 3D scene and updated in real time as the controls change.
+
+### Controls
+
+| Control | What it does |
+|---------|-------------|
+| Time slider | Scrub through 0–24 h in 15-minute increments; auto-play advances at 2 s/hour |
+| Day type | Switch between weekday and weekend Gaussian profiles |
+| Focus | Tenant mode penalises nightlife, boosts leisure; Business mode amplifies foot traffic peaks |
+| Layer visibility | Toggle Heatmap / 3D Hexagons / POI Dots / Tract Boundary independently |
+| Camera presets | Snap to 2D (top-down), 3D Tilt (pitch 45°), or Bird's Eye (pitch 60°) |
+
+### API endpoints added
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/pois/nearby?lat=&lon=&radius_m=800` | OSM POIs via Overpass (categorised, downsampled to 150) |
+| `GET /api/census/tract-geo?lat=&lon=` | Census tract boundary as GeoJSON Feature |
+
+### Simulation engine documentation
+
+See [`src/lib/simulation/README.md`](./src/lib/simulation/README.md) for a full description of the Gaussian model, category mapping, and how to extend profiles.
+
 ## Census data lookup (coordinates and address workflows)
 
 This repository also includes a Python script for pulling Census Reporter data from coordinates and for address-to-coordinate conversion workflows.

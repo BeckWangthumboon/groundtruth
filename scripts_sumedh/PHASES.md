@@ -67,13 +67,29 @@ asyncio.run(analyze_location_bundle(41.8781, -87.6298, "business"))
 ```
 
 ## Notes and assumptions
-- No FastAPI wiring is included yet—modules are importable standalone.
 - Network calls are live; rate limits/errors fall back where possible but will still surface exceptions if all endpoints fail.
 - Caches are in-memory only; restart clears them.
 - Dependencies: `httpx` (install via `python3 -m pip install httpx`).
 
-## Notes and assumptions
-- No FastAPI wiring is included yet—modules are importable standalone.
-- Network calls are live; rate limits/errors fall back where possible but will still surface exceptions if all endpoints fail.
-- Caches are in-memory only; restart clears them.
-- Dependencies: `httpx` (install via `python3 -m pip install httpx`).
+## Phase 6 — FastAPI wiring (complete)
+
+`overpass_pois.py` is now wired into the FastAPI backend at **`GET /api/pois/nearby`**:
+
+```
+GET /api/pois/nearby?lat=<float>&lon=<float>&radius_m=<int=800>
+```
+
+- Calls `get_overpass_pois(lat, lon, radius_m)` from Phase 1.
+- Returns `{ counts, points, meta }` directly.
+- Endpoint is `async def` to match the async Overpass client.
+- In-memory cache (1 h TTL) is inherited from Phase 1.
+
+A second endpoint, **`GET /api/census/tract-geo`**, resolves coordinates to a Census tract GEOID
+and proxies the TIGER 2022 boundary polygon from Census Reporter:
+
+```
+GET /api/census/tract-geo?lat=<float>&lon=<float>
+```
+
+Both endpoints are tested in `tests/test_pois_endpoint.py` and `tests/test_tract_geo_endpoint.py`
+with monkeypatched upstream responses.

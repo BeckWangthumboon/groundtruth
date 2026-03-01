@@ -53,6 +53,24 @@ const resolveFeatureCenter = (feature) => {
   return { lng, lat }
 }
 
+const resolveFeatureBounds = (feature) => {
+  const rawBounds = feature?.properties?.bbox ?? feature?.bbox
+  const bounds =
+    Array.isArray(rawBounds) && rawBounds.length === 4
+      ? rawBounds.map((item) => toFiniteNumber(item))
+      : null
+
+  if (!bounds?.every((value) => value != null)) {
+    return null
+  }
+
+  const [west, south, east, north] = bounds
+  return [
+    [west, south],
+    [east, north],
+  ]
+}
+
 const getFeatureDisplayLabel = (feature) =>
   feature?.properties?.full_address ??
   feature?.properties?.name_preferred ??
@@ -181,7 +199,9 @@ function App() {
   const [mapInstance, setMapInstance] = useState(null)
   const [inputValue, setInputValue] = useState('')
   const [isGoToPending, setIsGoToPending] = useState(false)
+  const [isZoomTransitioning, setIsZoomTransitioning] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+  const [hasStartedSearch, setHasStartedSearch] = useState(false)
 
   const [censusStatus, setCensusStatus] = useState('idle')
   const [censusData, setCensusData] = useState(null)
@@ -255,7 +275,7 @@ function App() {
     []
   )
 
-  const flyToSearchFeature = useCallback((feature) => {
+  const flyToSearchFeature = useCallback((feature, onMoveEnd) => {
     const map = mapRef.current
     if (!map || !feature) {
       return false
@@ -265,6 +285,7 @@ function App() {
     if (!centerPoint) {
       return false
     }
+    const bounds = resolveFeatureBounds(feature)
 
     pauseGlobeRotation()
     map.stop()
@@ -273,22 +294,35 @@ function App() {
 
     map.once('moveend', () => {
       resumeGlobeRotation()
+      onMoveEnd?.()
     })
 
-    map.flyTo({
-      center: [centerPoint.lng, centerPoint.lat],
-      zoom: streetLevelZoom,
-      pitch: 50,
-      bearing: -20,
-      duration,
-      essential: true,
-      easing: (t) => 1 - Math.pow(1 - t, 3),
-    })
+    if (bounds) {
+      map.fitBounds(bounds, {
+        padding: { top: 168, right: 168, bottom: 168, left: 168 },
+        maxZoom: streetLevelZoom,
+        pitch: 44,
+        bearing: -14,
+        duration,
+        essential: true,
+        easing: (t) => 1 - Math.pow(1 - t, 3),
+      })
+    } else {
+      map.flyTo({
+        center: [centerPoint.lng, centerPoint.lat],
+        zoom: streetLevelZoom,
+        pitch: 50,
+        bearing: -20,
+        duration,
+        essential: true,
+        easing: (t) => 1 - Math.pow(1 - t, 3),
+      })
+    }
 
     return true
   }, [])
 
-  const runCensusLookupThenZoom = useCallback(
+  const zoomThenRunCensusLookup = useCallback(
     async (feature, labelOverride = '') => {
       const centerPoint = resolveFeatureCenter(feature)
       if (!centerPoint) {
@@ -300,6 +334,24 @@ function App() {
 
       requestIdRef.current += 1
       const requestId = requestIdRef.current
+
+      setIsZoomTransitioning(true)
+      const didMove = flyToSearchFeature(feature, () => {
+        if (requestId === requestIdRef.current) {
+          setIsZoomTransitioning(false)
+        }
+      })
+      if (!didMove) {
+        if (requestId === requestIdRef.current) {
+          setIsZoomTransitioning(false)
+        }
+        setCensusStatus('error')
+        setCensusData(null)
+        setCensusErrorMessage('Could not zoom to the selected search result.')
+        return false
+      }
+
+      setHasSearched(true)
 
       lookupAbortControllerRef.current?.abort()
       const controller = new AbortController()
@@ -324,11 +376,6 @@ function App() {
         setCensusData(payload)
         setCensusStatus('success')
         setCensusErrorMessage('')
-
-        const didMove = flyToSearchFeature(feature)
-        if (didMove) {
-          setHasSearched(true)
-        }
 
         return didMove
       } catch (error) {
@@ -381,6 +428,7 @@ function App() {
         return false
       }
 
+      setHasStartedSearch(true)
       setIsGoToPending(true)
       try {
         const feature = await geocodeAddressToFeature(trimmedQuery)
@@ -396,12 +444,12 @@ function App() {
           setInputValue(nextInputValue)
         }
 
-        return await runCensusLookupThenZoom(feature, nextInputValue || trimmedQuery)
+        return await zoomThenRunCensusLookup(feature, nextInputValue || trimmedQuery)
       } finally {
         setIsGoToPending(false)
       }
     },
-    [geocodeAddressToFeature, runCensusLookupThenZoom]
+    [geocodeAddressToFeature, zoomThenRunCensusLookup]
   )
 
   const handleSearchRetrieve = useCallback(
@@ -411,14 +459,15 @@ function App() {
         return
       }
 
+      setHasStartedSearch(true)
       const nextInputValue = getFeatureDisplayLabel(feature)
       if (nextInputValue) {
         setInputValue(nextInputValue)
       }
 
-      void runCensusLookupThenZoom(feature, nextInputValue)
+      void zoomThenRunCensusLookup(feature, nextInputValue)
     },
-    [runCensusLookupThenZoom]
+    [zoomThenRunCensusLookup]
   )
 
   const handleGoToClick = useCallback(() => {
@@ -484,26 +533,33 @@ function App() {
   }, [submitGoToQuery])
 
   const isLookupInProgress = censusStatus === 'loading' || censusMutation.isPending
+  const showAnalysisOverlay = isLookupInProgress && !isZoomTransitioning
+  const showCensusPanel = censusStatus === 'success' || censusStatus === 'error'
 
   return (
-    <div className={`app-shell${hasSearched ? ' app-shell--searched' : ''}`}>
+    <div
+      className={`app-shell${hasSearched ? ' app-shell--searched' : ''}${
+        hasStartedSearch ? ' app-shell--hero-cleared' : ''
+      }`}
+    >
       <div id="map-container" ref={mapContainerRef} />
+      <div className="hero-wordmark-layer" aria-hidden="true">
+        <p className="hero-wordmark rubik-mono-one-regular">Ground Truth</p>
+      </div>
 
       <main className="ui-layer">
-        <AnalysisLoadingOverlay visible={isLookupInProgress} />
+        <AnalysisLoadingOverlay visible={showAnalysisOverlay} />
 
-        <section
-          className={`census-panel-anchor${
-            censusStatus !== 'idle' ? ' census-panel-anchor--visible' : ''
-          }`}
-        >
-          <CensusDataPanel
-            status={censusStatus}
-            data={censusData}
-            errorMessage={censusErrorMessage}
-            locationLabel={censusLocationLabel}
-          />
-        </section>
+        {showCensusPanel ? (
+          <section className="census-panel-anchor census-panel-anchor--visible">
+            <CensusDataPanel
+              status={censusStatus}
+              data={censusData}
+              errorMessage={censusErrorMessage}
+              locationLabel={censusLocationLabel}
+            />
+          </section>
+        ) : null}
 
         <div className={`search-shell${hasSearched ? ' search-shell--docked' : ''}`}>
           <Search className="search-icon" size={19} />

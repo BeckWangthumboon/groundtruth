@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
+import { MapboxOverlay } from '@deck.gl/mapbox'
 import { MapPin } from 'lucide-react'
 
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -12,14 +13,32 @@ import {
   LONGITUDE_LIMIT,
   squareBoundsFromCenter,
 } from '@/lib/geoSquare'
+import { fetchNearbyPois, fetchTractGeo } from '@/lib/api'
+import { buildSimulationLayers } from '@/lib/simulation/layers'
+import { computeDensityScale } from '@/lib/simulation/engine'
+import { TimeSlider } from '@/components/simulation/TimeSlider'
+import { ControlPanel } from '@/components/simulation/ControlPanel'
 
 const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN
 const RADIUS_OPTIONS_KM = [0.1, 0.25, 0.5, 1]
-const DEFAULT_RADIUS_KM = 0.1
+const DEFAULT_RADIUS_KM = 0.25
 const CAMERA_PITCH = 60
 const CAMERA_BEARING = -45
 const TERRAIN_SOURCE_ID = 'area-3d-terrain-source'
 const BUILDINGS_LAYER_ID = 'area-3d-buildings'
+
+// Default simulation state values
+const DEFAULT_SIM_STATE = {
+  currentHour: 12,
+  dayType: 'weekday',
+  focusMode: 'business',
+  layerVisibility: {
+    heatmap: true,
+    hexagon: true,
+    scatter: true,
+    tractBoundary: false,
+  },
+}
 
 const parseCoordinate = (rawValue, label, defaultValue, min, max) => {
   if (rawValue == null || rawValue.trim() === '') {
@@ -84,30 +103,23 @@ const add3DBuildings = (map) => {
           'interpolate',
           ['linear'],
           ['get', 'height'],
-          0,
-          '#c9d6e2',
-          40,
-          '#94a6b7',
-          120,
-          '#5d7288',
+          0, '#c9d6e2',
+          40, '#94a6b7',
+          120, '#5d7288',
         ],
         'fill-extrusion-height': [
           'interpolate',
           ['linear'],
           ['zoom'],
-          14,
-          0,
-          14.8,
-          ['coalesce', ['get', 'height'], 0],
+          14, 0,
+          14.8, ['coalesce', ['get', 'height'], 0],
         ],
         'fill-extrusion-base': [
           'interpolate',
           ['linear'],
           ['zoom'],
-          14,
-          0,
-          14.8,
-          ['coalesce', ['get', 'min_height'], 0],
+          14, 0,
+          14.8, ['coalesce', ['get', 'min_height'], 0],
         ],
         'fill-extrusion-opacity': 0.8,
       },
@@ -119,8 +131,25 @@ const add3DBuildings = (map) => {
 function Area3DPage() {
   const mapContainerRef = useRef(null)
   const mapRef = useRef(null)
+  const overlayRef = useRef(null)
   const selectedRadiusRef = useRef(DEFAULT_RADIUS_KM)
+
   const [selectedRadiusKm, setSelectedRadiusKm] = useState(DEFAULT_RADIUS_KM)
+
+  // Simulation state
+  const [currentHour, setCurrentHour] = useState(DEFAULT_SIM_STATE.currentHour)
+  /** @type {[import('@/lib/simulation/types.js').SimState['dayType'], (v: import('@/lib/simulation/types.js').SimState['dayType']) => void]} */
+  const [dayType, setDayType] = useState(/** @type {'weekday'|'weekend'} */ ('weekday'))
+  /** @type {[import('@/lib/simulation/types.js').SimState['focusMode'], (v: import('@/lib/simulation/types.js').SimState['focusMode']) => void]} */
+  const [focusMode, setFocusMode] = useState(/** @type {'tenant'|'business'} */ ('business'))
+  const [layerVisibility, setLayerVisibility] = useState(DEFAULT_SIM_STATE.layerVisibility)
+
+  // Data fetched from the backend
+  const [pois, setPois] = useState([])
+  const [tractGeoJson, setTractGeoJson] = useState(null)
+  const [densityScale, setDensityScale] = useState(1.0)
+  const [simLoading, setSimLoading] = useState(false)
+  const [simError, setSimError] = useState(null)
 
   const { latitude, longitude, warnings } = useMemo(() => {
     const params = new URLSearchParams(window.location.search)
@@ -174,6 +203,62 @@ function Area3DPage() {
     selectedRadiusRef.current = selectedRadiusKm
   }, [selectedRadiusKm])
 
+  // -------------------------------------------------------------------------
+  // Fetch POI and tract data once coordinates are known
+  // -------------------------------------------------------------------------
+
+  useEffect(() => {
+    const abortController = new AbortController()
+    const signal = abortController.signal
+
+    async function loadSimData() {
+      setSimLoading(true)
+      setSimError(null)
+      try {
+        const radiusM = Math.round(selectedRadiusRef.current * 1000)
+        const [poisResult, tractResult] = await Promise.allSettled([
+          fetchNearbyPois({ lat: latitude, lon: longitude, radiusM, signal }),
+          fetchTractGeo({ lat: latitude, lon: longitude, signal }),
+        ])
+
+        if (poisResult.status === 'fulfilled') {
+          const points = poisResult.value?.points ?? []
+          setPois(points)
+
+          // Derive density scale from population and tract area if possible
+          const pop = poisResult.value?.meta?.population
+          const aland = poisResult.value?.meta?.aland
+          if (pop && aland) {
+            setDensityScale(computeDensityScale(pop, aland))
+          }
+        } else if (!signal.aborted) {
+          console.warn('POI fetch failed:', poisResult.reason)
+          setSimError('Could not load nearby places. Simulation will run without POI data.')
+        }
+
+        if (tractResult.status === 'fulfilled') {
+          setTractGeoJson(tractResult.value)
+        }
+        // Tract geo failure is silent – the layer just won't render
+      } catch (err) {
+        if (!signal.aborted) {
+          console.error('Simulation data load error:', err)
+        }
+      } finally {
+        if (!signal.aborted) {
+          setSimLoading(false)
+        }
+      }
+    }
+
+    loadSimData()
+    return () => abortController.abort()
+  }, [latitude, longitude])
+
+  // -------------------------------------------------------------------------
+  // Map initialisation
+  // -------------------------------------------------------------------------
+
   useEffect(() => {
     if (!accessToken || !mapContainerRef.current) {
       return undefined
@@ -189,17 +274,10 @@ function Area3DPage() {
       pitch: CAMERA_PITCH,
       bearing: CAMERA_BEARING,
       antialias: true,
-      interactive: false,
-      dragPan: false,
-      scrollZoom: false,
-      doubleClickZoom: false,
-      boxZoom: false,
-      dragRotate: false,
-      keyboard: false,
-      touchZoomRotate: false,
-      pitchWithRotate: false,
-      minPitch: CAMERA_PITCH,
-      maxPitch: CAMERA_PITCH,
+      // Enable interaction so users can explore deck.gl layers
+      interactive: true,
+      minPitch: 0,
+      maxPitch: 85,
       config: {
         basemap: {
           theme: 'monochrome',
@@ -209,6 +287,11 @@ function Area3DPage() {
       attributionControl: false,
     })
     mapRef.current = map
+
+    // Attach deck.gl MapboxOverlay
+    const overlay = new MapboxOverlay({ layers: [] })
+    overlayRef.current = overlay
+    map.addControl(overlay)
 
     const centerMarker = new mapboxgl.Marker({ color: '#eef4ff' })
       .setLngLat([longitude, latitude])
@@ -243,8 +326,10 @@ function Area3DPage() {
     return () => {
       window.removeEventListener('resize', handleResize)
       centerMarker.remove()
+      overlay.finalize()
       map.remove()
       mapRef.current = null
+      overlayRef.current = null
     }
   }, [applyRadiusBounds, latitude, longitude])
 
@@ -256,20 +341,52 @@ function Area3DPage() {
     applyRadiusBounds(map, selectedRadiusKm, 600)
   }, [applyRadiusBounds, selectedRadiusKm])
 
+  // -------------------------------------------------------------------------
+  // Update deck.gl layers whenever simulation state or POI data changes
+  // -------------------------------------------------------------------------
+
+  useEffect(() => {
+    const overlay = overlayRef.current
+    if (!overlay) return
+
+    const layers = buildSimulationLayers({
+      pois,
+      currentHour,
+      dayType,
+      focusMode,
+      densityScale,
+      layerVisibility,
+      tractGeoJson,
+    })
+
+    overlay.setProps({ layers })
+  }, [pois, currentHour, dayType, focusMode, densityScale, layerVisibility, tractGeoJson])
+
+  // -------------------------------------------------------------------------
+  // State mutation helpers
+  // -------------------------------------------------------------------------
+
+  const handleLayerToggle = useCallback((key, value) => {
+    setLayerVisibility((prev) => ({ ...prev, [key]: value }))
+  }, [])
+
   return (
     <div className="app-shell app-shell--searched area3d-shell">
       <div id="map-container" ref={mapContainerRef} />
 
       <main className="ui-layer area3d-ui-layer">
+        {/* Location info bar */}
         <section className="search-shell area3d-toolbar">
           <MapPin className="search-icon area3d-pin" size={19} />
           <div className="area3d-copy">
-            <p className="area3d-title">Area 3D View</p>
+            <p className="area3d-title">Foot Traffic Simulation</p>
             <p className="area3d-meta">
               {latitude.toFixed(6)}, {longitude.toFixed(6)} · {formatRadiusLabel(selectedRadiusKm)} radius
             </p>
           </div>
         </section>
+
+        {/* Radius selector */}
         <section className="search-shell area3d-radius-shell">
           {RADIUS_OPTIONS_KM.map((radiusKm) => {
             const isActive = selectedRadiusKm === radiusKm
@@ -286,14 +403,38 @@ function Area3DPage() {
             )
           })}
         </section>
+
+        {/* Time slider */}
+        <TimeSlider currentHour={currentHour} onTimeChange={setCurrentHour} />
+
+        {/* Simulation controls */}
+        <ControlPanel
+          dayType={dayType}
+          onDayTypeChange={setDayType}
+          focusMode={focusMode}
+          onFocusModeChange={setFocusMode}
+          layerVisibility={layerVisibility}
+          onLayerToggle={handleLayerToggle}
+          mapRef={mapRef}
+        />
+
+        {/* Status indicators */}
+        {simLoading && (
+          <p className="sim-loading" role="status">Loading nearby places…</p>
+        )}
+
         <p className="area3d-hint">Pass coordinates as ?lat=&lt;value&gt;&amp;lon=&lt;value&gt;.</p>
-        {warnings.length > 0 && (
+
+        {(warnings.length > 0 || simError) && (
           <ul className="area3d-alerts">
             {warnings.map((warning) => (
               <li key={warning} className="area3d-alert area3d-alert--warning">
                 {warning}
               </li>
             ))}
+            {simError && (
+              <li className="area3d-alert area3d-alert--warning">{simError}</li>
+            )}
           </ul>
         )}
 

@@ -15,8 +15,6 @@ import { LocationSelection } from "@/lib/groundtruth/types";
 
 const HERO_CENTER: [number, number] = [0, 20];
 const HERO_ZOOM = 0.85;
-const HERO_FLY_DURATION_MS = 2400;
-const HERO_FLY_FALLBACK_MS = 3200;
 const SEARCH_TYPES = "country,region,postcode,district,place,locality,neighborhood,street,address";
 const SearchBox = dynamic(() => import("@mapbox/search-js-react").then((mod) => mod.SearchBox), { ssr: false });
 
@@ -38,7 +36,6 @@ export default function LandingHero() {
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const rotationFrameRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef<number>(0);
-  const transitionTimeoutRef = useRef<number | null>(null);
   const loadTimeoutRef = useRef<number | null>(null);
 
   const stopRotation = useCallback(() => {
@@ -80,51 +77,9 @@ export default function LandingHero() {
 
       setIsTransitioning(true);
       setSearchError(null);
-
-      const map = mapRef.current;
-      let done = false;
-
-      const finish = () => {
-        if (done) return;
-        done = true;
-
-        if (transitionTimeoutRef.current !== null) {
-          window.clearTimeout(transitionTimeoutRef.current);
-          transitionTimeoutRef.current = null;
-        }
-
-        setIsTransitioning(false);
-        router.push(toExploreUrl(location));
-      };
-
-      if (!map || !map.loaded()) {
-        finish();
-        return;
-      }
-
       stopRotation();
-      map.stop();
-
-      const onMoveEnd = () => {
-        map.off("moveend", onMoveEnd);
-        finish();
-      };
-
-      map.on("moveend", onMoveEnd);
-      transitionTimeoutRef.current = window.setTimeout(() => {
-        map.off("moveend", onMoveEnd);
-        finish();
-      }, HERO_FLY_FALLBACK_MS);
-
-      map.flyTo({
-        center: location.coordinates,
-        zoom: 14,
-        pitch: 52,
-        bearing: -28,
-        duration: HERO_FLY_DURATION_MS,
-        essential: true,
-        easing: (value) => 1 - Math.pow(1 - value, 3),
-      });
+      mapRef.current?.stop();
+      router.push(toExploreUrl(location));
     },
     [isTransitioning, router, stopRotation]
   );
@@ -203,10 +158,6 @@ export default function LandingHero() {
 
     return () => {
       stopRotation();
-      if (transitionTimeoutRef.current !== null) {
-        window.clearTimeout(transitionTimeoutRef.current);
-        transitionTimeoutRef.current = null;
-      }
       if (loadTimeoutRef.current !== null) {
         window.clearTimeout(loadTimeoutRef.current);
         loadTimeoutRef.current = null;

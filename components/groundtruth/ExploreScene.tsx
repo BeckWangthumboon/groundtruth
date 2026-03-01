@@ -18,6 +18,8 @@ import { LocationSelection, RiskGridData } from "@/lib/groundtruth/types";
 
 const SEARCH_TYPES = "country,region,postcode,district,place,locality,neighborhood,street,address";
 const SearchBox = dynamic(() => import("@mapbox/search-js-react").then((mod) => mod.SearchBox), { ssr: false });
+const GLOBE_START_CENTER: [number, number] = [0, 20];
+const GLOBE_START_ZOOM = 1.5;
 
 type CameraMode = "initial" | "fly";
 
@@ -54,10 +56,6 @@ export default function ExploreScene() {
   const [mapError, setMapError] = useState<string | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
   const [isLocationAnimating, setIsLocationAnimating] = useState(true);
-  const [renderDiagnostics, setRenderDiagnostics] = useState<{
-    sourceCellCount: number;
-    renderedCellCount: number;
-  } | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<LocationSelection>(urlLocation);
   const [riskGrid, setRiskGrid] = useState<RiskGridData>(() => buildRiskGrid(urlLocation.coordinates));
 
@@ -110,24 +108,6 @@ export default function ExploreScene() {
         drawRiskLayers(map, nextGrid);
         stopRiskAnimationRef.current = animateRiskLayers(map, nextGrid);
         const offset = getGridCameraOffset(map);
-
-        window.setTimeout(() => {
-          if (!map.getLayer(GT_LAYER_IDS.extrusion)) return;
-          const canvas = map.getCanvas();
-          const renderedCellCount = map.queryRenderedFeatures(
-            [
-              [0, 0],
-              [canvas.clientWidth, canvas.clientHeight],
-            ],
-            {
-              layers: [GT_LAYER_IDS.extrusion],
-            }
-          ).length;
-          setRenderDiagnostics({
-            sourceCellCount: nextGrid.cells.features.length,
-            renderedCellCount,
-          });
-        }, 400);
 
         if (cameraMode === "initial") {
           map.easeTo({
@@ -199,10 +179,10 @@ export default function ExploreScene() {
       container: mapContainerRef.current,
       style: MAP_STYLE_GRID,
       projection: "globe",
-      center: selectedLocationRef.current.coordinates,
-      zoom: 12,
-      pitch: 52,
-      bearing: -22,
+      center: GLOBE_START_CENTER,
+      zoom: GLOBE_START_ZOOM,
+      pitch: 0,
+      bearing: 0,
       antialias: true,
       attributionControl: false,
     });
@@ -226,7 +206,7 @@ export default function ExploreScene() {
       mapLoadedRef.current = true;
       setIsMapReady(true);
       setMapError(null);
-      applyLocation(selectedLocationRef.current, false, "initial");
+      applyLocation(selectedLocationRef.current, false, "fly");
     });
 
     map.on("error", (event) => {
@@ -428,12 +408,6 @@ export default function ExploreScene() {
                   </div>
                 ))}
               </div>
-              {renderDiagnostics ? (
-                <p className="mt-3 text-xs text-slate-300/75">
-                  Render check: {renderDiagnostics.renderedCellCount} visible cells /{" "}
-                  {renderDiagnostics.sourceCellCount} source cells
-                </p>
-              ) : null}
             </article>
           </section>
         </div>

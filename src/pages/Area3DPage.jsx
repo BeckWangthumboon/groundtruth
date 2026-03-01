@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
-import { MapboxOverlay } from '@deck.gl/mapbox'
 import { MapPin } from 'lucide-react'
 
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -13,12 +12,6 @@ import {
   LONGITUDE_LIMIT,
   squareBoundsFromCenter,
 } from '@/lib/geoSquare'
-// import { fetchNearbyPois, fetchTractGeo } from '@/lib/api'
-import { generateMockPois } from '@/lib/simulation/mockPois'
-import { buildSimulationLayers } from '@/lib/simulation/layers'
-import { computeDensityScale } from '@/lib/simulation/engine'
-import { TimeSlider } from '@/components/simulation/TimeSlider'
-import { ControlPanel } from '@/components/simulation/ControlPanel'
 
 const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN
 const RADIUS_OPTIONS_KM = [0.1, 0.25, 0.5, 1]
@@ -27,19 +20,6 @@ const CAMERA_PITCH = 60
 const CAMERA_BEARING = -45
 const TERRAIN_SOURCE_ID = 'area-3d-terrain-source'
 const BUILDINGS_LAYER_ID = 'area-3d-buildings'
-
-// Default simulation state values
-const DEFAULT_SIM_STATE = {
-  currentHour: 12,
-  dayType: 'weekday',
-  focusMode: 'business',
-  layerVisibility: {
-    heatmap: true,
-    hexagon: true,
-    scatter: true,
-    tractBoundary: false,
-  },
-}
 
 const parseCoordinate = (rawValue, label, defaultValue, min, max) => {
   if (rawValue == null || rawValue.trim() === '') {
@@ -132,25 +112,9 @@ const add3DBuildings = (map) => {
 function Area3DPage() {
   const mapContainerRef = useRef(null)
   const mapRef = useRef(null)
-  const overlayRef = useRef(null)
   const selectedRadiusRef = useRef(DEFAULT_RADIUS_KM)
 
   const [selectedRadiusKm, setSelectedRadiusKm] = useState(DEFAULT_RADIUS_KM)
-
-  // Simulation state
-  const [currentHour, setCurrentHour] = useState(DEFAULT_SIM_STATE.currentHour)
-  /** @type {[import('@/lib/simulation/types.js').SimState['dayType'], (v: import('@/lib/simulation/types.js').SimState['dayType']) => void]} */
-  const [dayType, setDayType] = useState(/** @type {'weekday'|'weekend'} */ ('weekday'))
-  /** @type {[import('@/lib/simulation/types.js').SimState['focusMode'], (v: import('@/lib/simulation/types.js').SimState['focusMode']) => void]} */
-  const [focusMode, setFocusMode] = useState(/** @type {'tenant'|'business'} */ ('business'))
-  const [layerVisibility, setLayerVisibility] = useState(DEFAULT_SIM_STATE.layerVisibility)
-
-  // Data fetched from the backend
-  const [pois, setPois] = useState([])
-  const [tractGeoJson, setTractGeoJson] = useState(null)
-  const [densityScale, setDensityScale] = useState(1.0)
-  const [simLoading, setSimLoading] = useState(false)
-  const [simError, setSimError] = useState(null)
 
   const { latitude, longitude, warnings } = useMemo(() => {
     const params = new URLSearchParams(window.location.search)
@@ -205,37 +169,6 @@ function Area3DPage() {
   }, [selectedRadiusKm])
 
   // -------------------------------------------------------------------------
-  // Fetch POI and tract data once coordinates are known
-  // -------------------------------------------------------------------------
-
-  useEffect(() => {
-    const abortController = new AbortController()
-    const signal = abortController.signal
-
-    async function loadSimData() {
-      setSimLoading(true)
-      setSimError(null)
-      try {
-        // TODO: restore real API calls once Overpass / Census endpoints are stable
-        const mock = generateMockPois(latitude, longitude)
-        setPois(mock.points)
-        setDensityScale(computeDensityScale(mock.meta.population, mock.meta.aland))
-      } catch (err) {
-        if (!signal.aborted) {
-          console.error('Simulation data load error:', err)
-        }
-      } finally {
-        if (!signal.aborted) {
-          setSimLoading(false)
-        }
-      }
-    }
-
-    loadSimData()
-    return () => abortController.abort()
-  }, [latitude, longitude])
-
-  // -------------------------------------------------------------------------
   // Map initialisation
   // -------------------------------------------------------------------------
 
@@ -254,7 +187,7 @@ function Area3DPage() {
       pitch: CAMERA_PITCH,
       bearing: CAMERA_BEARING,
       antialias: true,
-      // Enable interaction so users can explore deck.gl layers
+      // Keep map interactions enabled for manual area exploration
       interactive: true,
       minPitch: 0,
       maxPitch: 85,
@@ -267,11 +200,6 @@ function Area3DPage() {
       attributionControl: false,
     })
     mapRef.current = map
-
-    // Attach deck.gl MapboxOverlay
-    const overlay = new MapboxOverlay({ layers: [] })
-    overlayRef.current = overlay
-    map.addControl(overlay)
 
     const centerMarker = new mapboxgl.Marker({ color: '#eef4ff' })
       .setLngLat([longitude, latitude])
@@ -306,10 +234,8 @@ function Area3DPage() {
     return () => {
       window.removeEventListener('resize', handleResize)
       centerMarker.remove()
-      overlay.finalize()
       map.remove()
       mapRef.current = null
-      overlayRef.current = null
     }
   }, [applyRadiusBounds, latitude, longitude])
 
@@ -321,35 +247,6 @@ function Area3DPage() {
     applyRadiusBounds(map, selectedRadiusKm, 600)
   }, [applyRadiusBounds, selectedRadiusKm])
 
-  // -------------------------------------------------------------------------
-  // Update deck.gl layers whenever simulation state or POI data changes
-  // -------------------------------------------------------------------------
-
-  useEffect(() => {
-    const overlay = overlayRef.current
-    if (!overlay) return
-
-    const layers = buildSimulationLayers({
-      pois,
-      currentHour,
-      dayType,
-      focusMode,
-      densityScale,
-      layerVisibility,
-      tractGeoJson,
-    })
-
-    overlay.setProps({ layers })
-  }, [pois, currentHour, dayType, focusMode, densityScale, layerVisibility, tractGeoJson])
-
-  // -------------------------------------------------------------------------
-  // State mutation helpers
-  // -------------------------------------------------------------------------
-
-  const handleLayerToggle = useCallback((key, value) => {
-    setLayerVisibility((prev) => ({ ...prev, [key]: value }))
-  }, [])
-
   return (
     <div className="app-shell app-shell--searched area3d-shell">
       <div id="map-container" ref={mapContainerRef} />
@@ -359,7 +256,7 @@ function Area3DPage() {
         <section className="search-shell area3d-toolbar">
           <MapPin className="search-icon area3d-pin" size={19} />
           <div className="area3d-copy">
-            <p className="area3d-title">Foot Traffic Simulation</p>
+            <p className="area3d-title">Area 3D View</p>
             <p className="area3d-meta">
               {latitude.toFixed(6)}, {longitude.toFixed(6)} · {formatRadiusLabel(selectedRadiusKm)} radius
             </p>
@@ -384,37 +281,15 @@ function Area3DPage() {
           })}
         </section>
 
-        {/* Time slider */}
-        <TimeSlider currentHour={currentHour} onTimeChange={setCurrentHour} />
-
-        {/* Simulation controls */}
-        <ControlPanel
-          dayType={dayType}
-          onDayTypeChange={setDayType}
-          focusMode={focusMode}
-          onFocusModeChange={setFocusMode}
-          layerVisibility={layerVisibility}
-          onLayerToggle={handleLayerToggle}
-          mapRef={mapRef}
-        />
-
-        {/* Status indicators */}
-        {simLoading && (
-          <p className="sim-loading" role="status">Loading nearby places…</p>
-        )}
-
         <p className="area3d-hint">Pass coordinates as ?lat=&lt;value&gt;&amp;lon=&lt;value&gt;.</p>
 
-        {(warnings.length > 0 || simError) && (
+        {warnings.length > 0 && (
           <ul className="area3d-alerts">
             {warnings.map((warning) => (
               <li key={warning} className="area3d-alert area3d-alert--warning">
                 {warning}
               </li>
             ))}
-            {simError && (
-              <li className="area3d-alert area3d-alert--warning">{simError}</li>
-            )}
           </ul>
         )}
 

@@ -11,8 +11,7 @@ function buildApiUrl(path, params = {}) {
   return API_BASE ? url.toString() : `${url.pathname}${url.search}`
 }
 
-export async function fetchCensusByPoint({ lat, lon, acs = 'latest', signal }) {
-  const url = buildApiUrl('/api/census/by-point', { lat, lon, acs })
+async function fetchJson(url, signal) {
   const response = await fetch(url, { signal })
 
   let payload = null
@@ -28,4 +27,31 @@ export async function fetchCensusByPoint({ lat, lon, acs = 'latest', signal }) {
   }
 
   return payload
+}
+
+export async function fetchCensusByPoint({ lat, lon, acs = 'latest', signal }) {
+  const url = buildApiUrl('/api/census/by-point', { lat, lon, acs })
+  return fetchJson(url, signal)
+}
+
+/**
+ * Fetch nearby POIs from the Overpass-backed endpoint.
+ *
+ * @param {{ lat: number, lon: number, radiusM?: number, signal?: AbortSignal }} opts
+ * @returns {Promise<{ counts: Record<string,number>, points: Array<object>, meta: object }>}
+ */
+export async function fetchNearbyPois({ lat, lon, radiusM = 800, signal }) {
+  const url = buildApiUrl('/api/pois/nearby', { lat, lon, radius_m: radiusM })
+  return fetchJson(url, signal)
+}
+
+/**
+ * Fetch the Census tract boundary GeoJSON for a coordinate.
+ *
+ * @param {{ lat: number, lon: number, signal?: AbortSignal }} opts
+ * @returns {Promise<GeoJSON.Feature>}
+ */
+export async function fetchTractGeo({ lat, lon, signal }) {
+  const url = buildApiUrl('/api/census/tract-geo', { lat, lon })
+  return fetchJson(url, signal)
 }

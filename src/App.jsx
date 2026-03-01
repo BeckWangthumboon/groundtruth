@@ -6,8 +6,13 @@ import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 
 import { AnalysisLoadingOverlay } from './components/AnalysisLoadingOverlay'
 import { CensusDataPanel } from './components/CensusDataPanel'
+import { PersonaChecklistPanel } from './components/PersonaChecklistPanel'
 import { useUserType } from './hooks/useUserType'
 import { fetchCensusByPoint } from './lib/api'
+import {
+  createInitialChecklistState,
+  getChecklistItemsForUserType,
+} from './lib/poiChecklistCatalog'
 import { USER_TYPES } from './providers/userTypeContext'
 
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -211,6 +216,7 @@ function App() {
   const [censusErrorMessage, setCensusErrorMessage] = useState('')
   const [censusLocationLabel, setCensusLocationLabel] = useState('')
   const [isCensusPanelCollapsed, setIsCensusPanelCollapsed] = useState(false)
+  const [checklistStateByType, setChecklistStateByType] = useState(() => createInitialChecklistState())
 
   const censusMutation = useMutation({
     mutationFn: fetchCensusByPoint,
@@ -539,6 +545,28 @@ function App() {
   const isLookupInProgress = censusStatus === 'loading' || censusMutation.isPending
   const showAnalysisOverlay = isLookupInProgress && !isZoomTransitioning
   const showCensusPanel = censusStatus === 'success' || censusStatus === 'error'
+  const checklistItems = getChecklistItemsForUserType(userType)
+  const checklistState = checklistStateByType[userType] ?? {}
+
+  const handleToggleChecklistItem = useCallback(
+    (itemId) => {
+      setChecklistStateByType((previousState) => {
+        const nextStateForUserType = previousState[userType]
+        if (!nextStateForUserType || !(itemId in nextStateForUserType)) {
+          return previousState
+        }
+
+        return {
+          ...previousState,
+          [userType]: {
+            ...nextStateForUserType,
+            [itemId]: !nextStateForUserType[itemId],
+          },
+        }
+      })
+    },
+    [userType]
+  )
 
   useEffect(() => {
     if (!showCensusPanel) {
@@ -564,34 +592,44 @@ function App() {
         <AnalysisLoadingOverlay visible={showAnalysisOverlay} />
 
         {showCensusPanel ? (
-          <section
-            className={`census-panel-anchor census-panel-anchor--visible${
-              isCensusPanelCollapsed ? ' census-panel-anchor--collapsed' : ''
-            }`}
-          >
-            <button
-              type="button"
-              className="census-panel-toggle"
-              aria-label={isCensusPanelCollapsed ? 'Expand census panel' : 'Collapse census panel'}
-              onClick={() => setIsCensusPanelCollapsed((prev) => !prev)}
-            >
-              {isCensusPanelCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-            </button>
-
-            <div
-              className={`census-panel-shell${
-                isCensusPanelCollapsed ? ' census-panel-shell--hidden' : ''
+          <div className="analysis-panels">
+            <section
+              className={`census-panel-anchor census-panel-anchor--left census-panel-anchor--visible${
+                isCensusPanelCollapsed ? ' census-panel-anchor--collapsed' : ''
               }`}
-              aria-hidden={isCensusPanelCollapsed}
             >
-              <CensusDataPanel
-                status={censusStatus}
-                data={censusData}
-                errorMessage={censusErrorMessage}
-                locationLabel={censusLocationLabel}
+              <button
+                type="button"
+                className="census-panel-toggle"
+                aria-label={isCensusPanelCollapsed ? 'Expand census panel' : 'Collapse census panel'}
+                onClick={() => setIsCensusPanelCollapsed((prev) => !prev)}
+              >
+                {isCensusPanelCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+              </button>
+
+              <div
+                className={`census-panel-shell${
+                  isCensusPanelCollapsed ? ' census-panel-shell--hidden' : ''
+                }`}
+                aria-hidden={isCensusPanelCollapsed}
+              >
+                <CensusDataPanel
+                  status={censusStatus}
+                  data={censusData}
+                  errorMessage={censusErrorMessage}
+                  locationLabel={censusLocationLabel}
+                />
+              </div>
+            </section>
+
+            <section className="census-panel-anchor census-panel-anchor--right census-panel-anchor--visible">
+              <PersonaChecklistPanel
+                items={checklistItems}
+                checkedState={checklistState}
+                onToggleItem={handleToggleChecklistItem}
               />
-            </div>
-          </section>
+            </section>
+          </div>
         ) : null}
 
         <div className={`search-shell${hasSearched ? ' search-shell--docked' : ''}`}>
@@ -623,29 +661,31 @@ function App() {
           </button>
         </div>
 
-        <div className={`persona-toggle${hasSearched ? ' persona-toggle--docked' : ''}`} role="group">
-          <button
-            className={`persona-toggle__button persona-toggle__button--individual${
-              userType === USER_TYPES.INDIVIDUAL ? ' is-active' : ''
-            }`}
-            type="button"
-            onClick={() => setUserType(USER_TYPES.INDIVIDUAL)}
-            aria-pressed={userType === USER_TYPES.INDIVIDUAL}
-          >
-            Individual
-          </button>
+        {!hasStartedSearch ? (
+          <div className={`persona-toggle${hasSearched ? ' persona-toggle--docked' : ''}`} role="group">
+            <button
+              className={`persona-toggle__button persona-toggle__button--individual${
+                userType === USER_TYPES.INDIVIDUAL ? ' is-active' : ''
+              }`}
+              type="button"
+              onClick={() => setUserType(USER_TYPES.INDIVIDUAL)}
+              aria-pressed={userType === USER_TYPES.INDIVIDUAL}
+            >
+              Individual
+            </button>
 
-          <button
-            className={`persona-toggle__button persona-toggle__button--small-biz${
-              userType === USER_TYPES.SMALL_BIZ ? ' is-active' : ''
-            }`}
-            type="button"
-            onClick={() => setUserType(USER_TYPES.SMALL_BIZ)}
-            aria-pressed={userType === USER_TYPES.SMALL_BIZ}
-          >
-            Small Biz
-          </button>
-        </div>
+            <button
+              className={`persona-toggle__button persona-toggle__button--small-biz${
+                userType === USER_TYPES.SMALL_BIZ ? ' is-active' : ''
+              }`}
+              type="button"
+              onClick={() => setUserType(USER_TYPES.SMALL_BIZ)}
+              aria-pressed={userType === USER_TYPES.SMALL_BIZ}
+            >
+              Small Biz
+            </button>
+          </div>
+        ) : null}
       </main>
     </div>
   )

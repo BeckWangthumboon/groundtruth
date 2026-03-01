@@ -84,6 +84,185 @@ body {
   pointer-events: none;
 }
 
+.analysis-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 6;
+  background: rgba(1, 4, 10, 0.28);
+  backdrop-filter: blur(4px);
+}
+
+.analysis-overlay__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+.analysis-overlay__spinner {
+  width: 62px;
+  height: 62px;
+  border-radius: 999px;
+  border: 6px solid rgba(210, 224, 251, 0.2);
+  border-top-color: rgba(235, 242, 255, 0.95);
+  animation: census-spin 900ms linear infinite;
+}
+
+.analysis-overlay__label {
+  margin: 0;
+  text-align: center;
+  color: rgba(237, 244, 255, 0.96);
+  font-size: 1.12rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.census-panel-anchor {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  width: min(460px, calc(100vw - 2rem));
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.census-panel-anchor--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.census-panel {
+  border: 1px solid rgba(230, 237, 249, 0.22);
+  background: rgba(8, 12, 20, 0.78);
+  border-radius: 20px;
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(12px);
+  color: #eef2ff;
+  max-height: min(70vh, 760px);
+  overflow: auto;
+  padding: 14px;
+}
+
+.census-panel__header h2 {
+  margin: 0;
+  font-size: 1.02rem;
+  letter-spacing: 0.02em;
+}
+
+.census-panel__header p {
+  margin: 6px 0 0;
+  color: rgba(204, 216, 240, 0.8);
+  font-size: 0.82rem;
+}
+
+.census-panel__hint {
+  margin: 6px 0 0;
+  color: rgba(184, 200, 230, 0.8);
+  font-size: 0.8rem;
+}
+
+.census-panel__loading,
+.census-panel__error {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(21, 29, 45, 0.78);
+  border: 1px solid rgba(226, 235, 252, 0.11);
+}
+
+.census-panel__spinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 2px solid rgba(210, 224, 251, 0.25);
+  border-top-color: rgba(235, 242, 255, 0.95);
+  animation: census-spin 900ms linear infinite;
+  margin-bottom: 10px;
+}
+
+.census-panel__meta {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.census-panel__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.census-panel__label {
+  color: rgba(186, 202, 229, 0.88);
+  font-size: 0.82rem;
+}
+
+.census-panel__value {
+  color: rgba(243, 248, 255, 0.96);
+  font-size: 0.82rem;
+  text-align: right;
+}
+
+.census-panel__examples {
+  margin-top: 14px;
+}
+
+.census-panel__examples h3 {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+  color: rgba(235, 242, 255, 0.92);
+}
+
+.census-panel__example {
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(21, 29, 45, 0.7);
+  border: 1px solid rgba(227, 236, 252, 0.09);
+  margin-bottom: 8px;
+}
+
+.census-panel__example-title {
+  margin: 0 0 8px;
+  font-size: 0.81rem;
+  color: rgba(218, 229, 248, 0.92);
+}
+
+.census-panel__raw {
+  margin-top: 12px;
+}
+
+.census-panel__raw summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: rgba(208, 223, 248, 0.95);
+}
+
+.census-panel__raw pre {
+  margin: 8px 0 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(8, 12, 22, 0.82);
+  border: 1px solid rgba(220, 231, 252, 0.1);
+  color: rgba(230, 238, 254, 0.88);
+  font-size: 0.73rem;
+  line-height: 1.42;
+}
+
+@keyframes census-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .search-shell {
   width: min(780px, calc(100vw - 2rem));
   display: flex;
@@ -190,6 +369,17 @@ body {
 @media (max-width: 640px) {
   .ui-layer {
     padding: 22px 12px 26px;
+  }
+
+  .census-panel-anchor {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+  }
+
+  .census-panel {
+    max-height: 52vh;
   }
 
   .search-shell {

@@ -1,21 +1,63 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import mapboxgl from 'mapbox-gl'
 import { SearchBox } from '@mapbox/search-js-react'
 import { Search } from 'lucide-react'
+
+import { AnalysisLoadingOverlay } from './components/AnalysisLoadingOverlay'
+import { CensusDataPanel } from './components/CensusDataPanel'
+import { fetchCensusByPoint } from './lib/api'
 
 import 'mapbox-gl/dist/mapbox-gl.css'
 import './App.css'
 
 const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN
-const center = [-45, 30]
+const center = /** @type {[number, number]} */ ([-45, 30])
 const secondsPerRevolution = 160
 const maxSpinZoom = 3.4
 const homeZoom = 1.65
 const streetLevelZoom = 17.5
+
 const toFiniteNumber = (value) => {
   const numberValue = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(numberValue) ? numberValue : null
 }
+
+const resolveFeatureCenter = (feature) => {
+  const coordinates = feature?.geometry?.coordinates
+  let lng = Array.isArray(coordinates) ? toFiniteNumber(coordinates[0]) : null
+  let lat = Array.isArray(coordinates) ? toFiniteNumber(coordinates[1]) : null
+
+  if (lng == null || lat == null) {
+    lng = toFiniteNumber(feature?.properties?.coordinates?.longitude)
+    lat = toFiniteNumber(feature?.properties?.coordinates?.latitude)
+  }
+
+  const rawBounds = feature?.properties?.bbox ?? feature?.bbox
+  const bounds =
+    Array.isArray(rawBounds) && rawBounds.length === 4
+      ? rawBounds.map((item) => toFiniteNumber(item))
+      : null
+  const hasBounds = Boolean(bounds?.every((value) => value != null))
+
+  if (lng == null || lat == null) {
+    if (!hasBounds) {
+      return null
+    }
+
+    const [west, south, east, north] = bounds
+    lng = (west + east) / 2
+    lat = (south + north) / 2
+  }
+
+  return { lng, lat }
+}
+
+const getFeatureDisplayLabel = (feature) =>
+  feature?.properties?.full_address ??
+  feature?.properties?.name_preferred ??
+  feature?.properties?.name ??
+  ''
 
 const searchTheme = {
   variables: {
@@ -101,9 +143,9 @@ let _rotationPaused = false
 let _mapInstance = null
 let _rafId = 0
 let _lastRotTime = 0
-const _ROTATION_SPEED = 360 / secondsPerRevolution / 1000 // degrees per ms
+const _ROTATION_SPEED = 360 / secondsPerRevolution / 1000
 
-export function pauseGlobeRotation() {
+function pauseGlobeRotation() {
   _rotationPaused = true
   cancelAnimationFrame(_rafId)
 }
@@ -117,13 +159,13 @@ function _rotateGlobe(now) {
     _rafId = requestAnimationFrame(_rotateGlobe)
     return
   }
-  const center = _mapInstance.getCenter()
-  center.lng -= dt * _ROTATION_SPEED
-  _mapInstance.jumpTo({ center })
+  const mapCenter = _mapInstance.getCenter()
+  mapCenter.lng -= dt * _ROTATION_SPEED
+  _mapInstance.jumpTo({ center: mapCenter })
   _rafId = requestAnimationFrame(_rotateGlobe)
 }
 
-export function resumeGlobeRotation() {
+function resumeGlobeRotation() {
   _rotationPaused = false
   _lastRotTime = performance.now()
   cancelAnimationFrame(_rafId)
@@ -133,11 +175,22 @@ export function resumeGlobeRotation() {
 function App() {
   const mapRef = useRef(null)
   const mapContainerRef = useRef(null)
+  const requestIdRef = useRef(0)
+  const lookupAbortControllerRef = useRef(null)
 
   const [mapInstance, setMapInstance] = useState(null)
   const [inputValue, setInputValue] = useState('')
   const [isGoToPending, setIsGoToPending] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+
+  const [censusStatus, setCensusStatus] = useState('idle')
+  const [censusData, setCensusData] = useState(null)
+  const [censusErrorMessage, setCensusErrorMessage] = useState('')
+  const [censusLocationLabel, setCensusLocationLabel] = useState('')
+
+  const censusMutation = useMutation({
+    mutationFn: fetchCensusByPoint,
+  })
 
   useEffect(() => {
     if (!accessToken) {
@@ -195,91 +248,131 @@ function App() {
     }
   }, [])
 
-  const flyToSearchFeature = useCallback(
-    (feature) => {
-      const map = mapRef.current
-      if (!map || !feature) {
-        return false
-      }
-
-      const coordinates = feature?.geometry?.coordinates
-      let lng = Array.isArray(coordinates) ? toFiniteNumber(coordinates[0]) : null
-      let lat = Array.isArray(coordinates) ? toFiniteNumber(coordinates[1]) : null
-
-      if (lng == null || lat == null) {
-        lng = toFiniteNumber(feature?.properties?.coordinates?.longitude)
-        lat = toFiniteNumber(feature?.properties?.coordinates?.latitude)
-      }
-
-      const rawBounds = feature?.properties?.bbox ?? feature?.bbox
-      const bounds =
-        Array.isArray(rawBounds) && rawBounds.length === 4
-          ? rawBounds.map((item) => toFiniteNumber(item))
-          : null
-      const hasBounds = Boolean(bounds?.every((value) => value != null))
-
-      if (lng == null || lat == null) {
-        if (!hasBounds) {
-          return false
-        }
-
-        const [west, south, east, north] = bounds
-        lng = (west + east) / 2
-        lat = (south + north) / 2
-      }
-
-      pauseGlobeRotation()
-      map.stop()
-
-      const duration = 2800
-
-      map.once('moveend', () => {
-        resumeGlobeRotation()
-      })
-
-      map.flyTo({
-        center: [lng, lat],
-        zoom: streetLevelZoom,
-        pitch: 50,
-        bearing: -20,
-        duration,
-        essential: true,
-        easing: (t) => 1 - Math.pow(1 - t, 3),
-      })
-
-      return true
+  useEffect(
+    () => () => {
+      lookupAbortControllerRef.current?.abort()
     },
     []
   )
 
-  const geocodeAndFlyToAddress = useCallback(
-    async (query) => {
-      const trimmedQuery = query?.trim()
-      if (!trimmedQuery || !accessToken) {
+  const flyToSearchFeature = useCallback((feature) => {
+    const map = mapRef.current
+    if (!map || !feature) {
+      return false
+    }
+
+    const centerPoint = resolveFeatureCenter(feature)
+    if (!centerPoint) {
+      return false
+    }
+
+    pauseGlobeRotation()
+    map.stop()
+
+    const duration = 2800
+
+    map.once('moveend', () => {
+      resumeGlobeRotation()
+    })
+
+    map.flyTo({
+      center: [centerPoint.lng, centerPoint.lat],
+      zoom: streetLevelZoom,
+      pitch: 50,
+      bearing: -20,
+      duration,
+      essential: true,
+      easing: (t) => 1 - Math.pow(1 - t, 3),
+    })
+
+    return true
+  }, [])
+
+  const runCensusLookupThenZoom = useCallback(
+    async (feature, labelOverride = '') => {
+      const centerPoint = resolveFeatureCenter(feature)
+      if (!centerPoint) {
+        setCensusStatus('error')
+        setCensusData(null)
+        setCensusErrorMessage('Could not determine coordinates for the selected search result.')
         return false
       }
 
-      try {
-        const url = new URL('https://api.mapbox.com/search/geocode/v6/forward')
-        url.searchParams.set('q', trimmedQuery)
-        url.searchParams.set('limit', '1')
-        url.searchParams.set('access_token', accessToken)
+      requestIdRef.current += 1
+      const requestId = requestIdRef.current
 
-        const response = await fetch(url.toString())
-        if (!response.ok) {
+      lookupAbortControllerRef.current?.abort()
+      const controller = new AbortController()
+      lookupAbortControllerRef.current = controller
+
+      setCensusStatus('loading')
+      setCensusData(null)
+      setCensusErrorMessage('')
+      setCensusLocationLabel(labelOverride || getFeatureDisplayLabel(feature))
+
+      try {
+        const payload = await censusMutation.mutateAsync({
+          lat: centerPoint.lat,
+          lon: centerPoint.lng,
+          signal: controller.signal,
+        })
+
+        if (requestId !== requestIdRef.current) {
           return false
         }
 
-        const payload = await response.json()
-        const feature = payload?.features?.[0]
-        return flyToSearchFeature(feature)
+        setCensusData(payload)
+        setCensusStatus('success')
+        setCensusErrorMessage('')
+
+        const didMove = flyToSearchFeature(feature)
+        if (didMove) {
+          setHasSearched(true)
+        }
+
+        return didMove
       } catch (error) {
-        console.warn('Forward geocoding failed for address submit.', error)
+        if (controller.signal.aborted || requestId !== requestIdRef.current) {
+          return false
+        }
+
+        setCensusData(null)
+        setCensusStatus('error')
+        setCensusErrorMessage(error instanceof Error ? error.message : 'Failed to fetch Census data.')
         return false
+      } finally {
+        if (requestId === requestIdRef.current && lookupAbortControllerRef.current === controller) {
+          lookupAbortControllerRef.current = null
+        }
       }
     },
-    [flyToSearchFeature]
+    [censusMutation, flyToSearchFeature]
   )
+
+  const geocodeAddressToFeature = useCallback(async (query) => {
+    const trimmedQuery = query?.trim()
+    if (!trimmedQuery || !accessToken) {
+      return null
+    }
+
+    try {
+      const url = new URL('https://api.mapbox.com/search/geocode/v6/forward')
+      url.searchParams.set('q', trimmedQuery)
+      url.searchParams.set('limit', '1')
+      url.searchParams.set('access_token', accessToken)
+
+      const response = await fetch(url.toString())
+      if (!response.ok) {
+        return null
+      }
+
+      const payload = await response.json()
+      return payload?.features?.[0] ?? null
+    } catch (error) {
+      console.warn('Forward geocoding failed for address submit.', error)
+      return null
+    }
+  }, [])
 
   const submitGoToQuery = useCallback(
     async (rawQuery) => {
@@ -290,16 +383,25 @@ function App() {
 
       setIsGoToPending(true)
       try {
-        const didMove = await geocodeAndFlyToAddress(trimmedQuery)
-        if (didMove) {
-          setHasSearched(true)
+        const feature = await geocodeAddressToFeature(trimmedQuery)
+        if (!feature) {
+          setCensusStatus('error')
+          setCensusData(null)
+          setCensusErrorMessage('Search did not return a place for that query.')
+          return false
         }
-        return didMove
+
+        const nextInputValue = getFeatureDisplayLabel(feature)
+        if (nextInputValue) {
+          setInputValue(nextInputValue)
+        }
+
+        return await runCensusLookupThenZoom(feature, nextInputValue || trimmedQuery)
       } finally {
         setIsGoToPending(false)
       }
     },
-    [geocodeAndFlyToAddress]
+    [geocodeAddressToFeature, runCensusLookupThenZoom]
   )
 
   const handleSearchRetrieve = useCallback(
@@ -309,21 +411,14 @@ function App() {
         return
       }
 
-      const nextInputValue =
-        feature?.properties?.full_address ??
-        feature?.properties?.name_preferred ??
-        feature?.properties?.name ??
-        ''
+      const nextInputValue = getFeatureDisplayLabel(feature)
       if (nextInputValue) {
         setInputValue(nextInputValue)
       }
 
-      const didMove = flyToSearchFeature(feature)
-      if (didMove) {
-        setHasSearched(true)
-      }
+      void runCensusLookupThenZoom(feature, nextInputValue)
     },
-    [flyToSearchFeature]
+    [runCensusLookupThenZoom]
   )
 
   const handleGoToClick = useCallback(() => {
@@ -331,8 +426,8 @@ function App() {
   }, [inputValue, submitGoToQuery])
 
   const searchPopoverOptions = hasSearched
-    ? { placement: 'top-start', flip: false, offset: 10 }
-    : { placement: 'bottom-start', flip: false, offset: 10 }
+    ? /** @type {const} */ ({ placement: 'top-start', flip: false, offset: 10 })
+    : /** @type {const} */ ({ placement: 'bottom-start', flip: false, offset: 10 })
 
   useEffect(() => {
     let isDisposed = false
@@ -388,11 +483,28 @@ function App() {
     }
   }, [submitGoToQuery])
 
+  const isLookupInProgress = censusStatus === 'loading' || censusMutation.isPending
+
   return (
     <div className={`app-shell${hasSearched ? ' app-shell--searched' : ''}`}>
       <div id="map-container" ref={mapContainerRef} />
 
       <main className="ui-layer">
+        <AnalysisLoadingOverlay visible={isLookupInProgress} />
+
+        <section
+          className={`census-panel-anchor${
+            censusStatus !== 'idle' ? ' census-panel-anchor--visible' : ''
+          }`}
+        >
+          <CensusDataPanel
+            status={censusStatus}
+            data={censusData}
+            errorMessage={censusErrorMessage}
+            locationLabel={censusLocationLabel}
+          />
+        </section>
+
         <div className={`search-shell${hasSearched ? ' search-shell--docked' : ''}`}>
           <Search className="search-icon" size={19} />
 
@@ -403,7 +515,6 @@ function App() {
               mapboxgl={mapboxgl}
               value={inputValue}
               popoverOptions={searchPopoverOptions}
-              proximity={center}
               onChange={setInputValue}
               componentOptions={{ flyTo: false }}
               onRetrieve={handleSearchRetrieve}
@@ -417,9 +528,9 @@ function App() {
             className="goto-button"
             type="button"
             onClick={handleGoToClick}
-            disabled={!inputValue.trim() || isGoToPending}
+            disabled={!inputValue.trim() || isGoToPending || isLookupInProgress}
           >
-            {isGoToPending ? 'Going...' : 'Go to'}
+            {isGoToPending ? 'Searching...' : isLookupInProgress ? 'Loading...' : 'Go to'}
           </button>
         </div>
       </main>

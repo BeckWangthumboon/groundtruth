@@ -13,6 +13,12 @@ const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
 const clampLatitude = (lat) => clamp(lat, -LATITUDE_LIMIT, LATITUDE_LIMIT)
 const clampLongitude = (lon) => clamp(lon, -LONGITUDE_LIMIT, LONGITUDE_LIMIT)
 
+/**
+ * @param {number} lat
+ * @param {number} lon
+ * @param {number} [sideMeters]
+ * @returns {[[number, number], [number, number]]}
+ */
 export function squareBoundsFromCenter(lat, lon, sideMeters = 100) {
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
     throw new TypeError('Latitude and longitude must be finite numbers.')
@@ -35,8 +41,8 @@ export function squareBoundsFromCenter(lat, lon, sideMeters = 100) {
   const west = clampLongitude(safeLon - lonDelta)
   const east = clampLongitude(safeLon + lonDelta)
 
-  return [
+  return /** @type {[[number, number], [number, number]]} */ ([
     [west, south],
     [east, north],
-  ]
+  ])
 }

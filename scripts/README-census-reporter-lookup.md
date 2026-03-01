@@ -203,7 +203,8 @@ jq '.geography_levels' /Users/bala/Repos/groundtruth/scripts/out/census_43.07400
 
 - Missing/unavailable metrics are expected in some geographies and are allowed.
 - Sentinel negative medians from upstream are normalized to `null` for key median fields.
-- If the bulk `data/show` call fails due unsupported table combinations, the script falls back to per-table requests and merges successful results.
+- Per-table fallback is only triggered when the bulk `data/show` call fails with Census Reporter's specific "none of the releases had the requested geo_ids and table_ids" condition.
+- For other upstream failures, the script exits with an unrecoverable upstream API error.
 - Fallback details are written into `errors`.
 
 ## Exit codes
@@ -221,3 +222,5 @@ jq '.geography_levels' /Users/bala/Repos/groundtruth/scripts/out/census_43.07400
   - `https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress`
 - Census Reporter data endpoint:
   - `https://api.censusreporter.org/1.0/data/show/<acs>?table_ids=...&geo_ids=...`
+- Census Reporter parent geographies endpoint (used unless `--no-parents`):
+  - `https://api.censusreporter.org/1.0/geo/latest/<tract_geoid>/parents`

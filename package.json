@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "area3d": "node scripts/area3d-url.mjs"
   },
   "dependencies": {
     "@mapbox/search-js-react": "^1.5.1",

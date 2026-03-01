@@ -10,11 +10,9 @@ import { PersonaChecklistPanel } from './components/PersonaChecklistPanel'
 import { useUserType } from './hooks/useUserType'
 import { fetchCensusByPoint, fetchDynamicPois } from './lib/api'
 import {
-  buildPoiMarkerColorExpression,
-  createEmptyPoiFeatureCollection,
+  DEFAULT_POI_MARKER_COLOR,
   filterPoiPointsByCheckedLabels,
-  POI_MARKER_RADIUS_PX,
-  toPoiFeatureCollection,
+  POI_MARKER_COLOR_BY_TYPE,
 } from './lib/poiDynamicMap'
 import {
   createInitialChecklistState,
@@ -32,49 +30,27 @@ const maxSpinZoom = 3.4
 const homeZoom = 2.4
 const streetLevelZoom = 17.5
 const dynamicPoiRadiusM = 1200
-const dynamicPoiSourceId = 'dynamic-poi-source'
-const dynamicPoiLayerId = 'dynamic-poi-layer'
-const dynamicPoiColorExpression = buildPoiMarkerColorExpression()
 const enablePoiDebugLogs = import.meta.env.DEV
 
-function syncDynamicPoiSource(map, featureCollection) {
-  if (!map || !map.isStyleLoaded()) {
+function syncDynamicPoiMarkers(map, points, markerInstancesRef) {
+  markerInstancesRef.current.forEach((marker) => marker.remove())
+  markerInstancesRef.current = []
+
+  if (!Array.isArray(points) || points.length === 0) {
     return
   }
 
-  if (!map.getSource(dynamicPoiSourceId)) {
-    map.addSource(dynamicPoiSourceId, {
-      type: 'geojson',
-      data: createEmptyPoiFeatureCollection(),
-    })
-  }
-
-  if (!map.getLayer(dynamicPoiLayerId)) {
-    map.addLayer({
-      id: dynamicPoiLayerId,
-      type: 'circle',
-      source: dynamicPoiSourceId,
-      paint: {
-        'circle-color': dynamicPoiColorExpression,
-        'circle-radius': POI_MARKER_RADIUS_PX,
-        'circle-opacity': 0.95,
-        'circle-stroke-color': '#0e1522',
-        'circle-stroke-width': 1.25,
-      },
-    })
-  }
-
-  const source = map.getSource(dynamicPoiSourceId)
-  if (source && 'setData' in source) {
-    source.setData(featureCollection)
-    if (enablePoiDebugLogs) {
-      const count = Array.isArray(featureCollection?.features) ? featureCollection.features.length : 0
-      console.log('[dynamic-poi] map source updated', {
-        sourceId: dynamicPoiSourceId,
-        layerId: dynamicPoiLayerId,
-        featureCount: count,
-      })
+  for (const point of points) {
+    const lat = Number(point?.lat)
+    const lng = Number(point?.lng)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      continue
     }
+
+    const type = typeof point?.type === 'string' ? point.type : ''
+    const markerColor = POI_MARKER_COLOR_BY_TYPE[type] ?? DEFAULT_POI_MARKER_COLOR
+    const marker = new mapboxgl.Marker({ color: markerColor }).setLngLat([lng, lat]).addTo(map)
+    markerInstancesRef.current.push(marker)
   }
 }
 
@@ -239,7 +215,7 @@ function App() {
   const mapContainerRef = useRef(null)
   const requestIdRef = useRef(0)
   const lookupAbortControllerRef = useRef(null)
-  const dynamicPoiGeoJsonRef = useRef(createEmptyPoiFeatureCollection())
+  const dynamicPoiMarkerInstancesRef = useRef([])
 
   const [mapInstance, setMapInstance] = useState(null)
   const [inputValue, setInputValue] = useState('')
@@ -305,10 +281,6 @@ function App() {
   const visibleDynamicPoiPoints = useMemo(
     () => filterPoiPointsByCheckedLabels(fetchedDynamicPoiPoints, checkedChecklistItemIds),
     [fetchedDynamicPoiPoints, checkedChecklistItemIds]
-  )
-  const dynamicPoiFeatureCollection = useMemo(
-    () => toPoiFeatureCollection(visibleDynamicPoiPoints),
-    [visibleDynamicPoiPoints]
   )
 
   useEffect(() => {
@@ -401,7 +373,6 @@ function App() {
         'space-color': 'rgb(1, 2, 5)',
         'star-intensity': 0.45,
       })
-      syncDynamicPoiSource(map, dynamicPoiGeoJsonRef.current)
       resumeGlobeRotation()
     })
 
@@ -414,6 +385,8 @@ function App() {
     return () => {
       pauseGlobeRotation()
       _mapInstance = null
+      dynamicPoiMarkerInstancesRef.current.forEach((marker) => marker.remove())
+      dynamicPoiMarkerInstancesRef.current = []
       map.remove()
       setMapInstance(null)
       mapRef.current = null
@@ -428,17 +401,22 @@ function App() {
   )
 
   useEffect(() => {
-    dynamicPoiGeoJsonRef.current = dynamicPoiFeatureCollection
     const map = mapRef.current
     if (!map) {
       return
     }
+
     try {
-      syncDynamicPoiSource(map, dynamicPoiFeatureCollection)
+      syncDynamicPoiMarkers(map, visibleDynamicPoiPoints, dynamicPoiMarkerInstancesRef)
+      if (enablePoiDebugLogs) {
+        console.log('[dynamic-poi] marker instances updated', {
+          markerCount: dynamicPoiMarkerInstancesRef.current.length,
+        })
+      }
     } catch (error) {
-      console.warn('Could not update dynamic POI map markers.', error)
+      console.warn('Could not update dynamic POI markers.', error)
     }
-  }, [dynamicPoiFeatureCollection])
+  }, [visibleDynamicPoiPoints])
 
   useEffect(() => {
     if (dynamicPoiQuery.error) {

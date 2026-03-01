@@ -15,12 +15,26 @@ COUNTY_GEOID = "05000US55025"
 CBSA_GEOID = "31000US31540"
 STATE_GEOID = "04000US55"
 NATION_GEOID = "01000US"
+ZCTA_GEOID = "86000US53711"
 
 
 def _geocoder_payload() -> dict:
     return {
         "result": {
             "geographies": {
+                "2020 Census ZIP Code Tabulation Areas": [
+                    {
+                        "GEOID": "53711",
+                        "ZCTA5": "53711",
+                        "NAME": "ZCTA5 53711",
+                    }
+                ],
+                "Counties": [
+                    {
+                        "GEOID": "55025",
+                        "NAME": "Dane County",
+                    }
+                ],
                 "Census Tracts": [
                     {
                         "GEOID": "55025001704",
@@ -119,6 +133,17 @@ def _geo_tables(population: int, mhi: int, poverty_below: int, poverty_total: in
 def _tract_full_payload() -> dict:
     return {
         "release": {"id": "acs2024_5yr", "name": "ACS 2024 5-year", "years": "2020-2024"},
+        "tables": {
+            "B01003": {"title": "Total Population"},
+            "B01002": {"title": "Median Age"},
+            "B19013": {"title": "Median Household Income"},
+            "B19301": {"title": "Per Capita Income"},
+            "B17001": {"title": "Poverty Status"},
+            "B25064": {"title": "Median Rent"},
+            "B25077": {"title": "Median Home Value"},
+            "B08301": {"title": "Means of Transportation to Work"},
+            "B15003": {"title": "Educational Attainment"},
+        },
         "geography": {TRACT_GEOID: {"name": "Census Tract 17.04"}},
         "data": {TRACT_GEOID: _geo_tables(8835, 30683, 5960, 8835)},
     }
@@ -168,6 +193,17 @@ def _comparison_payload() -> dict:
     }
     return {
         "release": {"id": "acs2024_5yr", "name": "ACS 2024 5-year", "years": "2020-2024"},
+        "tables": {
+            "B01003": {"title": "Total Population"},
+            "B01002": {"title": "Median Age"},
+            "B19013": {"title": "Median Household Income"},
+            "B19301": {"title": "Per Capita Income"},
+            "B17001": {"title": "Poverty Status"},
+            "B25064": {"title": "Median Rent"},
+            "B25077": {"title": "Median Home Value"},
+            "B08301": {"title": "Means of Transportation to Work"},
+            "B15003": {"title": "Educational Attainment"},
+        },
         "geography": {geoid: {"name": names[geoid]} for geoid in geoids},
         "data": {
             geoid: _geo_tables(
@@ -192,9 +228,30 @@ def test_build_comparison_geoids_priority_order() -> None:
         tract_geoid=TRACT_GEOID,
         parents=_parents_payload()["parents"],
         include_parents=True,
+        required_geoids_by_sumlevel={"860": ZCTA_GEOID, "050": COUNTY_GEOID},
     )
-    assert geoids == [TRACT_GEOID, PLACE_GEOID, COUNTY_GEOID, CBSA_GEOID, STATE_GEOID, NATION_GEOID]
-    assert [x["sumlevel"] for x in selected] == ["140", "160", "050", "310", "040", "010"]
+    assert geoids == [
+        TRACT_GEOID,
+        ZCTA_GEOID,
+        COUNTY_GEOID,
+        PLACE_GEOID,
+        CBSA_GEOID,
+        STATE_GEOID,
+        NATION_GEOID,
+    ]
+    assert [x["sumlevel"] for x in selected] == ["140", "860", "050", "160", "310", "040", "010"]
+
+
+def test_extract_zip_and_county_geographies() -> None:
+    payload = _geocoder_payload()
+    county = cr.extract_optional_first_geography(payload, "Counties")
+    zcta = cr.extract_optional_zcta(payload)
+    assert county is not None
+    assert county["GEOID"] == "55025"
+    assert zcta is not None
+    assert zcta["GEOID"] == "53711"
+    assert cr.build_reporter_county_geoid("55025") == COUNTY_GEOID
+    assert cr.build_reporter_zcta_geoid("53711") == ZCTA_GEOID
 
 
 def test_derived_metrics_with_missing_values() -> None:
@@ -224,30 +281,48 @@ def test_derived_metrics_with_missing_values() -> None:
     assert result["poverty"]["rate_pct"] == pytest.approx(25.0)
     assert result["housing"]["median_rent"] is None
     assert result["education"]["high_school_or_higher_pct"] == pytest.approx(80.0)
-    assert result["education"]["bachelors_or_higher_pct"] == pytest.approx(30.0)
+    assert result["education"]["bachelors_or_higher_pct"] == pytest.approx(50.0)
 
 
-def test_profile_failure_is_non_fatal(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_bulk_failure_falls_back_to_per_table_requests(monkeypatch: pytest.MonkeyPatch) -> None:
+    tract_payload = _tract_full_payload()
+    seen_stages: list[str] = []
+
+    def single_table_tract_payload(table_id: str) -> dict:
+        table_data = tract_payload["data"][TRACT_GEOID].get(table_id, {"estimate": {}})
+        return {
+            "release": tract_payload["release"],
+            "tables": {table_id: {"title": table_id}},
+            "geography": tract_payload["geography"],
+            "data": {TRACT_GEOID: {table_id: table_data}},
+        }
+
     def fake_request_json(client, url, *, params, stage, config):  # type: ignore[no-untyped-def]
+        seen_stages.append(stage)
         if stage == "geocoder":
             return _geocoder_payload()
         if stage == "parents":
             return _parents_payload()
         if stage == "tract_full":
-            return _tract_full_payload()
+            raise cr.UpstreamAPIError(
+                "tract_full", 'HTTP 400: {"error":"None of the releases had the requested geo_ids and table_ids"}'
+            )
+        if stage.startswith("tract_full:"):
+            table_id = stage.split(":", 1)[1]
+            return single_table_tract_payload(table_id)
         if stage == "comparisons":
             return _comparison_payload()
-        if stage == "profile":
-            raise cr.UpstreamAPIError("profile", "not available")
         raise AssertionError(f"Unexpected stage: {stage}")
 
     monkeypatch.setattr(cr, "request_json", fake_request_json)
     args = cr.build_parser().parse_args(["--lat", "43.074", "--lon", "-89.384"])
     cr.validate_args(cr.build_parser(), args)
     result = cr.lookup_census(args)
-    assert result["data"]["profile"] is None
-    assert result["errors"]
-    assert result["errors"][0]["stage"] == "profile"
+    assert result["data"]["tract_full"]["tables"]
+    assert "tract_full" in seen_stages
+    assert any(stage.startswith("tract_full:") for stage in seen_stages)
+    assert result["geography_levels"]["zip_code_tabulation_area"]["reporter_geoid"] == ZCTA_GEOID
+    assert result["geography_levels"]["county"]["reporter_geoid"] == COUNTY_GEOID
 
 
 def test_no_tract_returns_exit_3(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -275,8 +350,6 @@ def test_cli_smoke_valid_run_writes_output(
             return _tract_full_payload()
         if stage == "comparisons":
             return _comparison_payload()
-        if stage == "profile":
-            return {"ok": True}
         raise AssertionError(f"Unexpected stage: {stage}")
 
     monkeypatch.setattr(cr, "request_json", fake_request_json)

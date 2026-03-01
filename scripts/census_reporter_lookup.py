@@ -84,7 +84,7 @@ TRANSPORT_COLUMNS = {
 }
 
 B15003_HIGH_SCHOOL_PLUS = [f"B15003{i:03d}" for i in range(12, 21)]
-B15003_BACHELORS_PLUS = [f"B15003{i:03d}" for i in range(17, 21)]
+B15003_BACHELORS_PLUS = [f"B15003{i:03d}" for i in range(15, 21)]
 
 
 @dataclass(frozen=True)
@@ -235,10 +235,42 @@ def extract_first_tract(geocoder_payload: dict[str, Any]) -> dict[str, Any]:
     return tracts[0]
 
 
+def extract_optional_first_geography(
+    geocoder_payload: dict[str, Any], geography_name: str
+) -> dict[str, Any] | None:
+    geographies = geocoder_payload.get("result", {}).get("geographies", {})
+    values = geographies.get(geography_name, [])
+    if isinstance(values, list) and values:
+        return values[0]
+    return None
+
+
+def extract_optional_zcta(geocoder_payload: dict[str, Any]) -> dict[str, Any] | None:
+    geographies = geocoder_payload.get("result", {}).get("geographies", {})
+    for key, values in geographies.items():
+        if "ZIP Code Tabulation Areas" not in key:
+            continue
+        if isinstance(values, list) and values:
+            return values[0]
+    return None
+
+
 def build_reporter_tract_geoid(tract_fips: str) -> str:
     if len(tract_fips) != 11 or not tract_fips.isdigit():
         raise ValueError(f"Unexpected tract GEOID format: {tract_fips!r}")
     return f"14000US{tract_fips}"
+
+
+def build_reporter_county_geoid(county_fips: str) -> str:
+    if len(county_fips) != 5 or not county_fips.isdigit():
+        raise ValueError(f"Unexpected county GEOID format: {county_fips!r}")
+    return f"05000US{county_fips}"
+
+
+def build_reporter_zcta_geoid(zcta: str) -> str:
+    if len(zcta) != 5 or not zcta.isdigit():
+        raise ValueError(f"Unexpected ZIP/ZCTA format: {zcta!r}")
+    return f"86000US{zcta}"
 
 
 def normalize_sumlevel(value: Any) -> str:
@@ -249,7 +281,10 @@ def normalize_sumlevel(value: Any) -> str:
 
 
 def build_comparison_geoids(
-    tract_geoid: str, parents: list[dict[str, Any]], include_parents: bool
+    tract_geoid: str,
+    parents: list[dict[str, Any]],
+    include_parents: bool,
+    required_geoids_by_sumlevel: dict[str, str] | None = None,
 ) -> tuple[list[str], list[dict[str, Any]]]:
     if not include_parents:
         return [tract_geoid], [
@@ -270,14 +305,20 @@ def build_comparison_geoids(
             normalized["geoid"] = geoid
             by_sumlevel[sumlevel] = normalized
 
-    # Force the requested tract geoid as the canonical "this" record.
-    base_tract_record = dict(by_sumlevel.get("140", {}))
-    base_tract_record["sumlevel"] = "140"
-    base_tract_record["relation"] = base_tract_record.get("relation", "this")
-    base_tract_record["geoid"] = tract_geoid
-    by_sumlevel["140"] = base_tract_record
+    required = dict(required_geoids_by_sumlevel or {})
+    required["140"] = tract_geoid
+    default_relations = {"140": "this", "860": "zcta", "050": "county"}
+    for sumlevel, geoid in required.items():
+        if not geoid:
+            continue
+        record = dict(by_sumlevel.get(sumlevel, {}))
+        record["sumlevel"] = sumlevel
+        record["geoid"] = geoid
+        if "relation" not in record:
+            record["relation"] = default_relations.get(sumlevel, "related")
+        by_sumlevel[sumlevel] = record
 
-    order = ["140", "160", "050", "310", "040", "010"]
+    order = ["140", "860", "050", "160", "310", "040", "010"]
     selected_geoids: list[str] = []
     selected_records: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -318,6 +359,110 @@ def fetch_data_show(
         "geo_ids": ",".join(geoids),
     }
     return request_json(client, url, params=params, stage=stage, config=config)
+
+
+def new_empty_data_show_payload() -> dict[str, Any]:
+    return {
+        "release": None,
+        "tables": {},
+        "geography": {},
+        "data": {},
+    }
+
+
+def merge_data_show_payload(base: dict[str, Any], incoming: dict[str, Any]) -> None:
+    if base.get("release") is None and incoming.get("release") is not None:
+        base["release"] = incoming.get("release")
+
+    incoming_tables = incoming.get("tables")
+    if isinstance(incoming_tables, dict):
+        base_tables = base.setdefault("tables", {})
+        if isinstance(base_tables, dict):
+            base_tables.update(incoming_tables)
+
+    incoming_geography = incoming.get("geography")
+    if isinstance(incoming_geography, dict):
+        base_geography = base.setdefault("geography", {})
+        if isinstance(base_geography, dict):
+            base_geography.update(incoming_geography)
+
+    incoming_data = incoming.get("data")
+    if isinstance(incoming_data, dict):
+        base_data = base.setdefault("data", {})
+        if isinstance(base_data, dict):
+            for geoid, geoid_tables in incoming_data.items():
+                if geoid not in base_data or not isinstance(base_data.get(geoid), dict):
+                    base_data[geoid] = {}
+                if isinstance(geoid_tables, dict):
+                    base_data[geoid].update(geoid_tables)
+
+
+def fetch_data_show_resilient(
+    client: httpx.Client,
+    *,
+    acs: str,
+    table_ids: list[str],
+    geoids: list[str],
+    stage: str,
+    config: ApiConfig,
+) -> tuple[dict[str, Any], list[dict[str, str]]]:
+    try:
+        payload = fetch_data_show(
+            client,
+            acs=acs,
+            table_ids=table_ids,
+            geoids=geoids,
+            stage=stage,
+            config=config,
+        )
+        return payload, []
+    except UpstreamAPIError as exc:
+        message = str(exc).lower()
+        marker = "none of the releases had the requested geo_ids and table_ids"
+        if marker not in message:
+            raise
+
+    merged = new_empty_data_show_payload()
+    errors: list[dict[str, str]] = []
+    successful_tables = 0
+    for table_id in table_ids:
+        table_stage = f"{stage}:{table_id}"
+        try:
+            payload = fetch_data_show(
+                client,
+                acs=acs,
+                table_ids=[table_id],
+                geoids=geoids,
+                stage=table_stage,
+                config=config,
+            )
+            merge_data_show_payload(merged, payload)
+            successful_tables += 1
+        except UpstreamAPIError as table_exc:
+            errors.append(
+                {
+                    "stage": stage,
+                    "table_id": table_id,
+                    "message": str(table_exc),
+                }
+            )
+
+    if successful_tables == 0:
+        first = errors[0]["message"] if errors else "No fallback requests succeeded."
+        raise UpstreamAPIError(stage, f"All per-table fallback requests failed. First error: {first}")
+
+    if errors:
+        errors.insert(
+            0,
+            {
+                "stage": stage,
+                "message": (
+                    "Bulk table request failed; completed with per-table fallback "
+                    f"({successful_tables}/{len(table_ids)} tables succeeded)."
+                ),
+            },
+        )
+    return merged, errors
 
 
 def get_estimate(
@@ -371,6 +516,16 @@ def compute_highlights_for_geoid(
 
     median_rent = get_estimate(payload, geoid, "B25064", "B25064001")
     median_home_value = get_estimate(payload, geoid, "B25077", "B25077001")
+
+    # Census Reporter can surface sentinel negative values for unavailable medians.
+    if isinstance(median_household_income, (int, float)) and median_household_income < 0:
+        median_household_income = None
+    if isinstance(per_capita_income, (int, float)) and per_capita_income < 0:
+        per_capita_income = None
+    if isinstance(median_rent, (int, float)) and median_rent < 0:
+        median_rent = None
+    if isinstance(median_home_value, (int, float)) and median_home_value < 0:
+        median_home_value = None
 
     transport_total = get_estimate(payload, geoid, "B08301", "B08301001")
     transport: dict[str, dict[str, float | int | None]] = {}
@@ -524,6 +679,7 @@ def lookup_census(args: argparse.Namespace) -> dict[str, Any]:
                 "y": args.lat,
                 "benchmark": "Public_AR_Current",
                 "vintage": "Current_Current",
+                "layers": "all",
                 "format": "json",
             },
             stage="geocoder",
@@ -532,11 +688,32 @@ def lookup_census(args: argparse.Namespace) -> dict[str, Any]:
         tract_record = extract_first_tract(geocoder_payload)
         tract_fips = str(tract_record["GEOID"])
         tract_geoid = build_reporter_tract_geoid(tract_fips)
+        county_record = extract_optional_first_geography(geocoder_payload, "Counties")
+        zcta_record = extract_optional_zcta(geocoder_payload)
+
+        county_geoid: str | None = None
+        if county_record and county_record.get("GEOID"):
+            county_geoid = build_reporter_county_geoid(str(county_record["GEOID"]))
+
+        zcta_geoid: str | None = None
+        if zcta_record:
+            zcta_candidate = str(zcta_record.get("GEOID") or zcta_record.get("ZCTA5") or "")
+            if zcta_candidate:
+                zcta_geoid = build_reporter_zcta_geoid(zcta_candidate)
+
+        required_geoids_by_sumlevel: dict[str, str] = {}
+        if zcta_geoid:
+            required_geoids_by_sumlevel["860"] = zcta_geoid
+        if county_geoid:
+            required_geoids_by_sumlevel["050"] = county_geoid
 
         parents_available: list[dict[str, Any]] = []
         if args.no_parents:
             comparison_geoids, selected_parents = build_comparison_geoids(
-                tract_geoid, parents=[], include_parents=False
+                tract_geoid,
+                parents=[],
+                include_parents=False,
+                required_geoids_by_sumlevel=required_geoids_by_sumlevel,
             )
         else:
             parents_payload = request_json(
@@ -548,10 +725,13 @@ def lookup_census(args: argparse.Namespace) -> dict[str, Any]:
             )
             parents_available = parents_payload.get("parents", [])
             comparison_geoids, selected_parents = build_comparison_geoids(
-                tract_geoid, parents_available, include_parents=True
+                tract_geoid,
+                parents_available,
+                include_parents=True,
+                required_geoids_by_sumlevel=required_geoids_by_sumlevel,
             )
 
-        tract_full_payload = fetch_data_show(
+        tract_full_payload, tract_fetch_errors = fetch_data_show_resilient(
             client,
             acs=args.acs,
             table_ids=FULL_TRACT_TABLES,
@@ -559,8 +739,9 @@ def lookup_census(args: argparse.Namespace) -> dict[str, Any]:
             stage="tract_full",
             config=config,
         )
+        errors.extend(tract_fetch_errors)
 
-        comparisons_payload = fetch_data_show(
+        comparisons_payload, comparison_fetch_errors = fetch_data_show_resilient(
             client,
             acs=args.acs,
             table_ids=COMPARISON_TABLES,
@@ -568,18 +749,10 @@ def lookup_census(args: argparse.Namespace) -> dict[str, Any]:
             stage="comparisons",
             config=config,
         )
+        errors.extend(comparison_fetch_errors)
 
+        # Census Reporter API does not expose a /data/profiles endpoint.
         profile_payload: dict[str, Any] | None = None
-        try:
-            profile_payload = request_json(
-                client,
-                f"{CENSUS_REPORTER_BASE_URL}/1.0/data/profiles/{args.acs}/{tract_geoid}",
-                params=None,
-                stage="profile",
-                config=config,
-            )
-        except UpstreamAPIError as exc:
-            errors.append({"stage": "profile", "message": str(exc)})
 
     tract_highlights, comparison_highlights = build_derived(
         tract_full_payload, comparisons_payload, comparison_geoids, tract_geoid
@@ -603,6 +776,20 @@ def lookup_census(args: argparse.Namespace) -> dict[str, Any]:
             "tract_fips": tract_fips,
             "reporter_geoid": tract_geoid,
             "geocoder_tract_record": tract_record,
+        },
+        "geography_levels": {
+            "census_tract": {
+                "reporter_geoid": tract_geoid,
+                "geocoder_record": tract_record,
+            },
+            "zip_code_tabulation_area": {
+                "reporter_geoid": zcta_geoid,
+                "geocoder_record": zcta_record,
+            },
+            "county": {
+                "reporter_geoid": county_geoid,
+                "geocoder_record": county_record,
+            },
         },
         "parents": {
             "available": parents_available,
@@ -663,4 +850,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

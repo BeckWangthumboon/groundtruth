@@ -60,24 +60,6 @@ const resolveFeatureCenter = (feature) => {
   return { lng, lat }
 }
 
-const resolveFeatureBounds = (feature) => {
-  const rawBounds = feature?.properties?.bbox ?? feature?.bbox
-  const bounds =
-    Array.isArray(rawBounds) && rawBounds.length === 4
-      ? rawBounds.map((item) => toFiniteNumber(item))
-      : null
-
-  if (!bounds?.every((value) => value != null)) {
-    return null
-  }
-
-  const [west, south, east, north] = bounds
-  return [
-    [west, south],
-    [east, north],
-  ]
-}
-
 const getFeatureDisplayLabel = (feature) =>
   feature?.properties?.full_address ??
   feature?.properties?.name_preferred ??
@@ -295,8 +277,6 @@ function App() {
     if (!centerPoint) {
       return false
     }
-    const bounds = resolveFeatureBounds(feature)
-
     pauseGlobeRotation()
     map.stop()
 
@@ -307,27 +287,15 @@ function App() {
       onMoveEnd?.()
     })
 
-    if (bounds) {
-      map.fitBounds(bounds, {
-        padding: { top: 168, right: 168, bottom: 168, left: 168 },
-        maxZoom: streetLevelZoom,
-        pitch: 44,
-        bearing: -14,
-        duration,
-        essential: true,
-        easing: (t) => 1 - Math.pow(1 - t, 3),
-      })
-    } else {
-      map.flyTo({
-        center: [centerPoint.lng, centerPoint.lat],
-        zoom: streetLevelZoom,
-        pitch: 50,
-        bearing: -20,
-        duration,
-        essential: true,
-        easing: (t) => 1 - Math.pow(1 - t, 3),
-      })
-    }
+    map.flyTo({
+      center: [centerPoint.lng, centerPoint.lat],
+      zoom: streetLevelZoom,
+      pitch: 50,
+      bearing: -20,
+      duration,
+      essential: true,
+      easing: (t) => 1 - Math.pow(1 - t, 3),
+    })
 
     return true
   }, [])

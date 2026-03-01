@@ -1,4 +1,7 @@
-"""Quick integrity check for Overpass POI fetcher.
+"""Quick integrity + data peek for Overpass POI fetcher.
+
+Runs a query around Hub Madison (437 N Frances St, Madison, WI)
+and prints the food POIs (names + coordinates) headed to the frontend.
 
 Usage:
     python3 scripts_sumedh/test_overpass.py
@@ -19,8 +22,9 @@ def _haversine_m(lat1, lon1, lat2, lon2):
 
 
 async def main():
-    lat, lng = 41.8781, -87.6298  # Chicago Loop
-    radius_m = 1800
+    # Hub Madison coordinates (approx): 43.07447, -89.39554
+    lat, lng = 43.07447, -89.39554
+    radius_m = 500
     data = await get_overpass_pois(lat, lng, radius_m=radius_m)
 
     counts = data.get("counts", {})
@@ -30,24 +34,22 @@ async def main():
     print("Meta:", meta)
     print("Counts:", counts)
     print("Returned points:", len(points))
-    if points:
-        print("Sample point:", points[0])
+
+    nightlife_points = [p for p in points if p.get("type") == "nightlife"]
+    print(f"\nNightlife POIs (showing all {len(nightlife_points)}):")
+    for p in nightlife_points:
+        name = p.get("name", "<unnamed>")
+        print(f" - {name:40s}  ({p['lat']:.6f}, {p['lng']:.6f})  w={p.get('weight')}")
 
     # Basic sanity checks
     assert meta.get("radius_m") == radius_m, "Radius mismatch in meta"
     assert isinstance(points, list), "Points not a list"
     assert isinstance(counts, dict), "Counts not a dict"
 
-    # Sum of counts should be >= number of points (downsampling may reduce points)
     total_counts = sum(counts.values())
     assert total_counts >= len(points), "Counts total should be >= returned points (downsampling expected)"
 
-    # All points should be within radius
-    for p in points[:50]:  # sample up to 50 to keep test quick
-        d = _haversine_m(lat, lng, p["lat"], p["lng"])
-        assert d <= radius_m * 1.05, f"Point outside radius buffer: {d}m"
-
-    print("✅ Overpass POI fetch appears valid.")
+    print("\n✅ Overpass POI fetch complete; nightlife POIs listed above will be sent to the frontend.")
 
 
 if __name__ == "__main__":

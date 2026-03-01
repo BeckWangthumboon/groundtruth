@@ -46,3 +46,10 @@ npm run area3d -- --base-url http://localhost:5173
 ```
 
 The command prints the final `area-3d.html` URL and optionally opens it in your browser when `--open` is provided.
+
+## Census data lookup (coordinates and address workflows)
+
+This repository also includes a Python script for pulling Census Reporter data from coordinates and for address-to-coordinate conversion workflows.
+
+- Script: `scripts/census_reporter_lookup.py`
+- Full usage guide: [`scripts/README-census-reporter-lookup.md`](./scripts/README-census-reporter-lookup.md)

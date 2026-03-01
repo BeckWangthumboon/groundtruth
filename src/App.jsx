@@ -6,7 +6,9 @@ import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 
 import { AnalysisLoadingOverlay } from './components/AnalysisLoadingOverlay'
 import { CensusDataPanel } from './components/CensusDataPanel'
+import { useUserType } from './hooks/useUserType'
 import { fetchCensusByPoint } from './lib/api'
+import { USER_TYPES } from './providers/userTypeContext'
 
 import 'mapbox-gl/dist/mapbox-gl.css'
 import './App.css'
@@ -191,6 +193,7 @@ function resumeGlobeRotation() {
 }
 
 function App() {
+  const { userType, setUserType } = useUserType()
   const mapRef = useRef(null)
   const mapContainerRef = useRef(null)
   const requestIdRef = useRef(0)
@@ -617,6 +620,30 @@ function App() {
             disabled={!inputValue.trim() || isGoToPending || isLookupInProgress}
           >
             {isGoToPending ? 'Searching...' : isLookupInProgress ? 'Loading...' : 'Go to'}
+          </button>
+        </div>
+
+        <div className={`persona-toggle${hasSearched ? ' persona-toggle--docked' : ''}`} role="group">
+          <button
+            className={`persona-toggle__button persona-toggle__button--individual${
+              userType === USER_TYPES.INDIVIDUAL ? ' is-active' : ''
+            }`}
+            type="button"
+            onClick={() => setUserType(USER_TYPES.INDIVIDUAL)}
+            aria-pressed={userType === USER_TYPES.INDIVIDUAL}
+          >
+            Individual
+          </button>
+
+          <button
+            className={`persona-toggle__button persona-toggle__button--small-biz${
+              userType === USER_TYPES.SMALL_BIZ ? ' is-active' : ''
+            }`}
+            type="button"
+            onClick={() => setUserType(USER_TYPES.SMALL_BIZ)}
+            aria-pressed={userType === USER_TYPES.SMALL_BIZ}
+          >
+            Small Biz
           </button>
         </div>
       </main>

@@ -13,6 +13,7 @@ _TRANSIT_CAP = 30
 _PARKS_CAP = 10
 _PARKING_CAP = 20
 
+
 def _stable_seed(*parts) -> int:
     s = "|".join(map(str, parts)).encode()
     return int(hashlib.md5(s).hexdigest()[:8], 16)

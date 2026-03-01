@@ -28,8 +28,13 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from scripts_sumedh.overpass_pois import get_overpass_pois  # noqa: E402
+from scripts_sumedh.pois_dynamic import (  # noqa: E402
+    POI_LABELS,
+    get_pois_by_preferences,
+)
 
 app = FastAPI(title="Groundtruth Census API", version="0.1.0")
+_DYNAMIC_LABELS = set(POI_LABELS.keys()) | {"direct_competition"}
 
 raw_origins = os.getenv("CORS_ORIGINS", "*")
 allow_origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
@@ -87,6 +92,55 @@ async def pois_nearby(
         return await get_overpass_pois(lat, lon, radius_m)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Overpass error: {exc}") from exc
+
+
+@app.get("/api/pois/dynamic")
+async def pois_dynamic(
+    lat: float = Query(..., ge=-90, le=90),
+    lon: float = Query(..., ge=-180, le=180),
+    selected_labels: str = Query(
+        ...,
+        description="Comma-separated labels. Example: essentials_nearby,transit_access",
+    ),
+    radius_m: int = Query(1200, ge=100, le=5000),
+    business_type: str | None = Query(None),
+    include_nodes: bool = Query(True),
+) -> dict:
+    """Fetch preference-driven POI counts and optional map points.
+
+    Uses dynamic labels configured in scripts_sumedh/pois_dynamic.py.
+    """
+    labels = [label.strip() for label in selected_labels.split(",") if label.strip()]
+    if not labels:
+        raise HTTPException(
+            status_code=422,
+            detail="selected_labels must contain at least one valid label.",
+        )
+
+    unknown_labels = [label for label in labels if label not in _DYNAMIC_LABELS]
+    if unknown_labels:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unknown selected_labels: {', '.join(unknown_labels)}",
+        )
+
+    if "direct_competition" in labels and not business_type:
+        raise HTTPException(
+            status_code=422,
+            detail="business_type is required when selected_labels includes direct_competition.",
+        )
+
+    try:
+        return await get_pois_by_preferences(
+            lat,
+            lon,
+            radius_m,
+            selected_labels=labels,
+            business_type=business_type,
+            include_nodes=include_nodes,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Dynamic POI error: {exc}") from exc
 
 
 @app.get("/api/census/tract-geo")

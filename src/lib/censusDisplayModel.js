@@ -10,6 +10,8 @@ const SELECTOR_LABELS = {
 function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value)
 }
+import { CENSUS_SECTION_ORDER, CENSUS_SECTIONS, CENSUS_TABLE_CATALOG, SNAPSHOT_TABLE_IDS } from './censusTableCatalog'
+import { buildCensusChartSections } from './censusChartModel'
 
 function formatNumber(value, maxFractionDigits = 1) {
   if (!isFiniteNumber(value)) {
@@ -239,5 +241,6 @@ export function buildCensusDisplayModel(data, selectedGeoid) {
     selectedGeoid: resolvedSelectedGeoid,
     profile: buildProfileModel(data, selectedProfile, selectedOption),
     sections,
+    chartSections: buildCensusChartSections(data),
   }
 }

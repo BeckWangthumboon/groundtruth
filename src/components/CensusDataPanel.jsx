@@ -168,6 +168,8 @@ function SectionView({ section }) {
     </div>
   )
 }
+import { CensusHeroStats } from './CensusHeroStats'
+import { CensusRichCharts } from './CensusRichCharts'
 
 export function CensusDataPanel({ status, data, errorMessage, locationLabel }) {
   const [selectorState, setSelectorState] = useState({ loadKey: null, geoid: null })
@@ -274,6 +276,8 @@ export function CensusDataPanel({ status, data, errorMessage, locationLabel }) {
           </div>
 
           <SectionView section={activeSection} />
+          <CensusHeroStats cards={displayModel?.snapshotCards} />
+          <CensusRichCharts sections={displayModel?.chartSections} />
         </>
       ) : null}
     </aside>

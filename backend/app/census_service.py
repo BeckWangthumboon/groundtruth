@@ -303,7 +303,7 @@ def _build_table_glossary(payload: dict[str, Any], requested: list[str]) -> dict
         meta = tables.get(table_id, {}) if isinstance(tables, dict) else {}
         out[table_id] = {
             "table_id": table_id,
-            "title": meta.get("simple_table_title") or meta.get("table_title"),
+            "title": meta.get("title") or meta.get("simple_table_title") or meta.get("table_title"),
             "table_title": meta.get("table_title"),
             "subject_area": meta.get("subject_area"),
             "universe": meta.get("universe"),
@@ -312,6 +312,93 @@ def _build_table_glossary(payload: dict[str, Any], requested: list[str]) -> dict
             "columns": meta.get("columns") if isinstance(meta.get("columns"), dict) else {},
         }
     return out
+
+
+def _has_estimates(table_data: dict[str, Any] | None) -> bool:
+    if not isinstance(table_data, dict):
+        return False
+    estimate = table_data.get("estimate")
+    return isinstance(estimate, dict) and len(estimate) > 0
+
+
+def _build_effective_tables_payload(
+    *,
+    requested: list[str],
+    selected_level: str,
+    candidates_with_payload: list[dict[str, Any]],
+) -> dict[str, Any]:
+    ordered_levels = ["census_block", "census_block_group", "census_tract"]
+    selected_index = ordered_levels.index(selected_level)
+    allowed_levels = ordered_levels[selected_index:]
+    allowed_set = set(allowed_levels)
+
+    level_to_candidate = {
+        candidate["level"]: candidate
+        for candidate in candidates_with_payload
+        if candidate.get("level") in allowed_set
+    }
+    merge_candidates = [level_to_candidate[level] for level in allowed_levels if level in level_to_candidate]
+
+    by_table: dict[str, Any] = {}
+    tables: dict[str, Any] = {}
+    table_sources: dict[str, Any] = {}
+    geography: dict[str, Any] = {}
+
+    release = None
+    for candidate in merge_candidates:
+        payload = candidate.get("payload", {})
+        if release is None and payload.get("release") is not None:
+            release = payload.get("release")
+
+    for table_id in requested:
+        for candidate in merge_candidates:
+            payload = candidate.get("payload", {})
+            reporter_geoid = candidate.get("reporter_geoid")
+            source_geoid = candidate.get("source_geoid")
+            level = candidate.get("level")
+
+            geoid_tables = payload.get("data", {}).get(reporter_geoid, {})
+            table_data = geoid_tables.get(table_id, {})
+            if not _has_estimates(table_data):
+                continue
+
+            by_table[table_id] = {
+                "estimate": table_data.get("estimate") if isinstance(table_data.get("estimate"), dict) else {},
+                "error": table_data.get("error") if isinstance(table_data.get("error"), dict) else {},
+            }
+
+            table_meta = payload.get("tables", {}).get(table_id, {})
+            tables[table_id] = table_meta if isinstance(table_meta, dict) else {}
+
+            geoid_meta = payload.get("geography", {}).get(reporter_geoid)
+            if geoid_meta is not None:
+                geography[reporter_geoid] = geoid_meta
+
+            table_sources[table_id] = {
+                "level": level,
+                "source_geoid": source_geoid,
+                "reporter_geoid": reporter_geoid,
+                "is_fallback_from_selected": level != selected_level,
+            }
+            break
+
+    available_table_ids = [table_id for table_id in requested if table_id in by_table]
+    unavailable_table_ids = [table_id for table_id in requested if table_id not in by_table]
+
+    return {
+        "strategy": "smallest_available_with_larger_level_fallback",
+        "selected_level": selected_level,
+        "merge_levels": allowed_levels,
+        "release": release,
+        "table_sources": table_sources,
+        "available_count": len(available_table_ids),
+        "available_table_ids": available_table_ids,
+        "unavailable_count": len(unavailable_table_ids),
+        "unavailable_table_ids": unavailable_table_ids,
+        "tables": tables,
+        "geography": geography,
+        "by_table": by_table,
+    }
 
 
 def _first_estimate_column(
@@ -327,17 +414,14 @@ def _first_estimate_column(
 
 
 def _build_interpreted_examples(
-    payload: dict[str, Any],
-    geoid: str,
+    by_table_data: dict[str, Any],
     glossary: dict[str, Any],
     requested: list[str],
 ) -> dict[str, Any]:
-    geoid_tables = payload.get("data", {}).get(geoid, {})
-
     by_table: dict[str, Any] = {}
     for table_id in requested:
         meta = glossary.get(table_id, {})
-        table_data = geoid_tables.get(table_id, {})
+        table_data = by_table_data.get(table_id, {})
 
         column_id = _first_estimate_column(table_data, meta.get("denominator_column_id"))
         estimate = table_data.get("estimate", {}).get(column_id) if column_id else None
@@ -423,6 +507,7 @@ def lookup_smallest_census_by_point(
     attempt_results: list[dict[str, Any]] = []
     selected_payload: dict[str, Any] | None = None
     selected_errors: list[dict[str, str]] = []
+    candidates_with_payload: list[dict[str, Any]] = []
 
     for candidate in attempts:
         reporter_geoid = candidate.get("reporter_geoid")
@@ -480,19 +565,32 @@ def lookup_smallest_census_by_point(
             )
             continue
 
-        selected = candidate
-        selected_payload = payload
-        selected_errors = fallback_errors
+        candidates_with_payload.append(
+            {
+                **candidate,
+                "payload": payload,
+                "available_tables": available_tables,
+                "fallback_errors": fallback_errors,
+            }
+        )
+
+        if selected is None:
+            selected = candidate
+            selected_payload = payload
+            selected_errors = fallback_errors
+            status = "selected"
+        else:
+            status = "available_larger_level"
+
         attempt_results.append(
             {
                 **candidate,
-                "status": "selected",
+                "status": status,
                 "available_tables": available_tables,
                 "available_count": len(available_tables),
                 "error": None,
             }
         )
-        break
 
     if not selected or not selected_payload:
         raise NoGeographyFoundError(
@@ -503,8 +601,18 @@ def lookup_smallest_census_by_point(
     available_table_ids = _list_available_tables(selected_payload, selected_geoid, TABLE_IDS)
     unavailable_table_ids = [table_id for table_id in TABLE_IDS if table_id not in available_table_ids]
 
-    table_glossary = _build_table_glossary(selected_payload, TABLE_IDS)
-    interpreted = _build_interpreted_examples(selected_payload, selected_geoid, table_glossary, TABLE_IDS)
+    effective_data = _build_effective_tables_payload(
+        requested=TABLE_IDS,
+        selected_level=selected["level"],
+        candidates_with_payload=candidates_with_payload,
+    )
+    effective_payload_for_glossary = {"tables": effective_data.get("tables", {})}
+    table_glossary = _build_table_glossary(effective_payload_for_glossary, TABLE_IDS)
+    interpreted = _build_interpreted_examples(
+        effective_data.get("by_table", {}),
+        table_glossary,
+        TABLE_IDS,
+    )
 
     return {
         "input": {
@@ -533,6 +641,10 @@ def lookup_smallest_census_by_point(
             "available_table_ids": available_table_ids,
             "unavailable_count": len(unavailable_table_ids),
             "unavailable_table_ids": unavailable_table_ids,
+            "effective_available_count": effective_data.get("available_count", 0),
+            "effective_available_table_ids": effective_data.get("available_table_ids", []),
+            "effective_unavailable_count": effective_data.get("unavailable_count", 0),
+            "effective_unavailable_table_ids": effective_data.get("unavailable_table_ids", []),
         },
         "table_glossary": table_glossary,
         "data_raw": {
@@ -541,6 +653,7 @@ def lookup_smallest_census_by_point(
             "geography": selected_payload.get("geography"),
             "data": selected_payload.get("data"),
         },
+        "data_effective": effective_data,
         "data_interpreted": interpreted,
         "errors": selected_errors,
     }

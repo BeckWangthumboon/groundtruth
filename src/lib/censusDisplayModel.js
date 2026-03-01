@@ -1,4 +1,5 @@
 import { CENSUS_SECTION_ORDER, CENSUS_SECTIONS, CENSUS_TABLE_CATALOG, SNAPSHOT_TABLE_IDS } from './censusTableCatalog'
+import { buildCensusChartSections } from './censusChartModel'
 
 function toFiniteNumber(value) {
   const numeric = typeof value === 'number' ? value : Number(value)
@@ -123,5 +124,6 @@ export function buildCensusDisplayModel(data) {
   return {
     snapshotCards,
     sections,
+    chartSections: buildCensusChartSections(data),
   }
 }

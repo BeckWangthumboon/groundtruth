@@ -1,5 +1,6 @@
 import { buildCensusDisplayModel } from '../lib/censusDisplayModel'
 import { CensusHeroStats } from './CensusHeroStats'
+import { CensusRichCharts } from './CensusRichCharts'
 import { CensusStatTabs } from './CensusStatTabs'
 
 export function CensusDataPanel({ status, data, errorMessage, locationLabel }) {
@@ -38,6 +39,7 @@ export function CensusDataPanel({ status, data, errorMessage, locationLabel }) {
       {status === 'success' ? (
         <>
           <CensusHeroStats cards={displayModel?.snapshotCards} />
+          <CensusRichCharts sections={displayModel?.chartSections} />
           <CensusStatTabs sections={displayModel?.sections} />
         </>
       ) : null}

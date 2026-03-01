@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import { SearchBox } from '@mapbox/search-js-react'
-import { LocateFixed, MapPin, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 
 import 'mapbox-gl/dist/mapbox-gl.css'
 import './App.css'
@@ -10,27 +10,8 @@ const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN
 const center = [-45, 30]
 const secondsPerRevolution = 160
 const maxSpinZoom = 3.4
-const slowSpinZoom = 2.5
 const homeZoom = 1.65
-const tiltStartZoom = 1.6
-const tiltEndZoom = 3.6
-const minTilt = 0
-const maxTilt = 62
-const minBearing = 0
-const maxBearing = -18
 
-const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
-const lerp = (start, end, amount) => start + (end - start) * amount
-
-const getCinematicCameraForZoom = (zoom) => {
-  const tiltProgress = clamp((zoom - tiltStartZoom) / (tiltEndZoom - tiltStartZoom), 0, 1)
-  return {
-    pitch: lerp(minTilt, maxTilt, tiltProgress),
-    bearing: lerp(minBearing, maxBearing, tiltProgress),
-  }
-}
-
-const homeCamera = getCinematicCameraForZoom(homeZoom)
 const closeInZoomByFeatureType = {
   address: 17.2,
   poi: 16.8,
@@ -44,6 +25,10 @@ const closeInZoomByFeatureType = {
 }
 
 const getCloseInZoom = (featureType) => closeInZoomByFeatureType[featureType] ?? 16.2
+const toFiniteNumber = (value) => {
+  const numberValue = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(numberValue) ? numberValue : null
+}
 
 const searchTheme = {
   variables: {
@@ -125,42 +110,46 @@ const searchTheme = {
   `,
 }
 
+let _rotationPaused = false
+let _mapInstance = null
+let _rafId = 0
+let _lastRotTime = 0
+const _ROTATION_SPEED = 360 / secondsPerRevolution / 1000 // degrees per ms
+
+export function pauseGlobeRotation() {
+  _rotationPaused = true
+  cancelAnimationFrame(_rafId)
+}
+
+function _rotateGlobe(now) {
+  if (!_mapInstance || !_mapInstance.getContainer().parentElement) return
+  if (_rotationPaused) return
+  const dt = now - _lastRotTime
+  _lastRotTime = now
+  if (_mapInstance.getZoom() > maxSpinZoom) {
+    _rafId = requestAnimationFrame(_rotateGlobe)
+    return
+  }
+  const center = _mapInstance.getCenter()
+  center.lng -= dt * _ROTATION_SPEED
+  _mapInstance.jumpTo({ center })
+  _rafId = requestAnimationFrame(_rotateGlobe)
+}
+
+export function resumeGlobeRotation() {
+  _rotationPaused = false
+  _lastRotTime = performance.now()
+  cancelAnimationFrame(_rafId)
+  _rafId = requestAnimationFrame(_rotateGlobe)
+}
+
 function App() {
   const mapRef = useRef(null)
   const mapContainerRef = useRef(null)
-  const userInteractingRef = useRef(false)
-  const spinTimerRef = useRef(null)
-  const interactionResumeRef = useRef(null)
 
   const [mapInstance, setMapInstance] = useState(null)
   const [inputValue, setInputValue] = useState('')
-
-  const spinGlobe = useCallback(() => {
-    const map = mapRef.current
-    if (!map || userInteractingRef.current) {
-      return
-    }
-
-    const zoom = map.getZoom()
-    if (zoom >= maxSpinZoom) {
-      return
-    }
-
-    let distancePerSecond = 360 / secondsPerRevolution
-    if (zoom > slowSpinZoom) {
-      const zoomScale = (maxSpinZoom - zoom) / (maxSpinZoom - slowSpinZoom)
-      distancePerSecond *= zoomScale
-    }
-
-    const currentCenter = map.getCenter()
-    currentCenter.lng -= distancePerSecond
-
-    map.easeTo({
-      center: currentCenter,
-      duration: 1000,
-      easing: (t) => t,
-    })
-  }, [])
+  const [isGoToPending, setIsGoToPending] = useState(false)
 
   useEffect(() => {
     if (!accessToken) {
@@ -174,8 +163,8 @@ function App() {
       container: mapContainerRef.current,
       center,
       zoom: homeZoom,
-      pitch: homeCamera.pitch,
-      bearing: homeCamera.bearing,
+      pitch: 0,
+      bearing: 0,
       style: 'mapbox://styles/mapbox/standard',
       projection: 'globe',
       config: {
@@ -184,56 +173,13 @@ function App() {
           lightPreset: 'night',
         },
       },
-      dragRotate: false,
+      interactive: true,
+      attributionControl: false,
     })
 
+    _mapInstance = map
     mapRef.current = map
     setMapInstance(map)
-
-    const syncCameraToZoom = () => {
-      const zoom = map.getZoom()
-      const targetCamera = getCinematicCameraForZoom(zoom)
-
-      map.setPitch(lerp(map.getPitch(), targetCamera.pitch, 0.22))
-      map.setBearing(lerp(map.getBearing(), targetCamera.bearing, 0.22))
-    }
-
-    const queueSpin = () => {
-      if (userInteractingRef.current) {
-        return
-      }
-
-      if (spinTimerRef.current) {
-        window.clearTimeout(spinTimerRef.current)
-      }
-
-      spinTimerRef.current = window.setTimeout(() => {
-        spinGlobe()
-      }, 260)
-    }
-
-    const beginInteraction = () => {
-      userInteractingRef.current = true
-
-      if (spinTimerRef.current) {
-        window.clearTimeout(spinTimerRef.current)
-      }
-
-      if (interactionResumeRef.current) {
-        window.clearTimeout(interactionResumeRef.current)
-      }
-    }
-
-    const endInteraction = (resumeDelay = 900) => {
-      if (interactionResumeRef.current) {
-        window.clearTimeout(interactionResumeRef.current)
-      }
-
-      interactionResumeRef.current = window.setTimeout(() => {
-        userInteractingRef.current = false
-        spinGlobe()
-      }, resumeDelay)
-    }
 
     map.on('style.load', () => {
       map.setFog({
@@ -243,105 +189,232 @@ function App() {
         'space-color': 'rgb(1, 2, 5)',
         'star-intensity': 0.45,
       })
-      syncCameraToZoom()
-      spinGlobe()
+      resumeGlobeRotation()
     })
 
-    map.on('moveend', queueSpin)
-    map.on('zoomstart', beginInteraction)
-    map.on('zoom', syncCameraToZoom)
-    map.on('zoomend', () => endInteraction(950))
-    map.on('dragstart', beginInteraction)
-    map.on('dragend', () => endInteraction(700))
+    const stopRotation = () => {
+      pauseGlobeRotation()
+    }
+    map.on('mousedown', stopRotation)
+    map.on('touchstart', stopRotation)
 
     return () => {
-      if (spinTimerRef.current) {
-        window.clearTimeout(spinTimerRef.current)
-      }
-      if (interactionResumeRef.current) {
-        window.clearTimeout(interactionResumeRef.current)
-      }
+      pauseGlobeRotation()
+      _mapInstance = null
       map.remove()
       setMapInstance(null)
       mapRef.current = null
     }
-  }, [spinGlobe])
+  }, [])
 
-  const focusSearch = () => {
-    const searchInput =
-      document.querySelector('mapbox-search-box')?.shadowRoot?.querySelector('input') ||
-      document.querySelector('mapbox-search-box input')
-
-    searchInput?.focus()
-  }
-
-  const flyHome = () => {
-    const map = mapRef.current
-    if (!map) {
-      return
-    }
-
-    map.flyTo({
-      center,
-      zoom: homeZoom,
-      pitch: homeCamera.pitch,
-      bearing: homeCamera.bearing,
-      speed: 0.5,
-      curve: 1.35,
-    })
-  }
-
-  const handleRetrieve = useCallback(
-    (res) => {
+  const flyToSearchFeature = useCallback(
+    (feature) => {
       const map = mapRef.current
-      const feature = res?.features?.[0]
-      const coords = feature?.geometry?.coordinates
-      if (!map || !Array.isArray(coords) || coords.length < 2) {
+      if (!map || !feature) {
+        return false
+      }
+
+      const coordinates = feature?.geometry?.coordinates
+      let lng = Array.isArray(coordinates) ? toFiniteNumber(coordinates[0]) : null
+      let lat = Array.isArray(coordinates) ? toFiniteNumber(coordinates[1]) : null
+
+      if (lng == null || lat == null) {
+        lng = toFiniteNumber(feature?.properties?.coordinates?.longitude)
+        lat = toFiniteNumber(feature?.properties?.coordinates?.latitude)
+      }
+
+      const rawBounds = feature?.properties?.bbox ?? feature?.bbox
+      const bounds =
+        Array.isArray(rawBounds) && rawBounds.length === 4
+          ? rawBounds.map((item) => toFiniteNumber(item))
+          : null
+      const hasBounds = Boolean(bounds?.every((value) => value != null))
+
+      if (lng == null || lat == null) {
+        if (!hasBounds) {
+          return false
+        }
+
+        const [west, south, east, north] = bounds
+        lng = (west + east) / 2
+        lat = (south + north) / 2
+      }
+
+      const featureType = feature?.properties?.feature_type
+      const targetZoom = getCloseInZoom(featureType)
+
+      pauseGlobeRotation()
+      map.stop()
+
+      const duration = 2800
+
+      map.once('moveend', () => {
+        resumeGlobeRotation()
+      })
+
+      if (hasBounds) {
+        const [west, south, east, north] = bounds
+        map.fitBounds(
+          [
+            [west, south],
+            [east, north],
+          ],
+          {
+            maxZoom: targetZoom,
+            padding: 92,
+            duration,
+            pitch: 50,
+            bearing: -20,
+            essential: true,
+          }
+        )
+      } else {
+        map.flyTo({
+          center: [lng, lat],
+          zoom: targetZoom,
+          pitch: 50,
+          bearing: -20,
+          duration,
+          essential: true,
+          easing: (t) => 1 - Math.pow(1 - t, 3),
+        })
+      }
+
+      return true
+    },
+    []
+  )
+
+  const geocodeAndFlyToAddress = useCallback(
+    async (query) => {
+      const trimmedQuery = query?.trim()
+      if (!trimmedQuery || !accessToken) {
+        return false
+      }
+
+      try {
+        const url = new URL('https://api.mapbox.com/search/geocode/v6/forward')
+        url.searchParams.set('q', trimmedQuery)
+        url.searchParams.set('limit', '1')
+        url.searchParams.set('access_token', accessToken)
+
+        const response = await fetch(url.toString())
+        if (!response.ok) {
+          return false
+        }
+
+        const payload = await response.json()
+        const feature = payload?.features?.[0]
+        return flyToSearchFeature(feature)
+      } catch (error) {
+        console.warn('Forward geocoding failed for address submit.', error)
+        return false
+      }
+    },
+    [flyToSearchFeature]
+  )
+
+  const submitGoToQuery = useCallback(
+    async (rawQuery) => {
+      const trimmedQuery = rawQuery?.trim()
+      if (!trimmedQuery) {
+        return false
+      }
+
+      setIsGoToPending(true)
+      try {
+        return await geocodeAndFlyToAddress(trimmedQuery)
+      } finally {
+        setIsGoToPending(false)
+      }
+    },
+    [geocodeAndFlyToAddress]
+  )
+
+  const handleSearchRetrieve = useCallback(
+    (response) => {
+      const feature = response?.features?.[0]
+      if (!feature) {
         return
       }
 
-      const [lng, lat] = coords
-      const featureType = feature?.properties?.feature_type
-      const targetZoom = getCloseInZoom(featureType)
-      const targetCamera = getCinematicCameraForZoom(targetZoom)
-
-      userInteractingRef.current = true
-
-      if (spinTimerRef.current) {
-        window.clearTimeout(spinTimerRef.current)
-      }
-      if (interactionResumeRef.current) {
-        window.clearTimeout(interactionResumeRef.current)
+      const nextInputValue =
+        feature?.properties?.full_address ??
+        feature?.properties?.name_preferred ??
+        feature?.properties?.name ??
+        ''
+      if (nextInputValue) {
+        setInputValue(nextInputValue)
       }
 
-      map.flyTo({
-        center: [lng, lat],
-        zoom: targetZoom,
-        pitch: Math.max(targetCamera.pitch, 56),
-        bearing: targetCamera.bearing,
-        speed: 0.72,
-        curve: 1.35,
-        essential: true,
-      })
-
-      interactionResumeRef.current = window.setTimeout(() => {
-        userInteractingRef.current = false
-        spinGlobe()
-      }, 2600)
+      flyToSearchFeature(feature)
     },
-    [spinGlobe]
+    [flyToSearchFeature]
   )
+
+  const handleGoToClick = useCallback(() => {
+    void submitGoToQuery(inputValue)
+  }, [inputValue, submitGoToQuery])
+
+  useEffect(() => {
+    let isDisposed = false
+    let animationFrameId = 0
+    let removeListener = () => {}
+
+    const handleEnterSubmit = (event) => {
+      if (event.key !== 'Enter' || event.isComposing) {
+        return
+      }
+
+      const typedTarget = event.target
+      const isTypedFromInput =
+        typedTarget instanceof HTMLInputElement || typedTarget instanceof HTMLTextAreaElement
+      if (!isTypedFromInput) {
+        return
+      }
+
+      const query = typedTarget.value?.trim()
+      if (!query) {
+        return
+      }
+
+      event.preventDefault()
+      void submitGoToQuery(query)
+    }
+
+    const attachListener = () => {
+      if (isDisposed) {
+        return
+      }
+
+      const searchElement = document.querySelector('mapbox-search-box')
+      if (!searchElement) {
+        animationFrameId = window.requestAnimationFrame(attachListener)
+        return
+      }
+
+      searchElement.addEventListener('keydown', handleEnterSubmit)
+      removeListener = () => {
+        searchElement.removeEventListener('keydown', handleEnterSubmit)
+      }
+    }
+
+    attachListener()
+
+    return () => {
+      isDisposed = true
+      if (animationFrameId) {
+        window.cancelAnimationFrame(animationFrameId)
+      }
+      removeListener()
+    }
+  }, [submitGoToQuery])
 
   return (
     <div className="app-shell">
       <div id="map-container" ref={mapContainerRef} />
 
       <main className="ui-layer">
-        <button className="check-button" type="button" onClick={focusSearch}>
-          <MapPin size={16} strokeWidth={2.25} />
-          <span>Check a Place</span>
-        </button>
-
         <div className="search-shell">
           <Search className="search-icon" size={19} />
 
@@ -353,8 +426,8 @@ function App() {
               value={inputValue}
               proximity={center}
               onChange={setInputValue}
-              onRetrieve={handleRetrieve}
               componentOptions={{ flyTo: false }}
+              onRetrieve={handleSearchRetrieve}
               marker
               placeholder="Search city, address, or place"
               theme={searchTheme}
@@ -362,12 +435,12 @@ function App() {
           </div>
 
           <button
-            className="recenter-button"
+            className="goto-button"
             type="button"
-            onClick={flyHome}
-            aria-label="Recenter globe"
+            onClick={handleGoToClick}
+            disabled={!inputValue.trim() || isGoToPending}
           >
-            <LocateFixed size={18} />
+            {isGoToPending ? 'Going...' : 'Go to'}
           </button>
         </div>
       </main>

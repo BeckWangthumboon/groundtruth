@@ -26,3 +26,23 @@ You'll learn how to:
 - Install dependencies with `npm install`
 - Replace `YOUR_MAPBOX_ACCESS_TOKEN` in `src/App.jsx` with an access token from your [Mapbox account](https://console.mapbox.com/).
 - Run the development server with `npm run dev` and open the app in your browser at [http://localhost:5173](http://localhost:5173).
+
+## Area 3D page (0.1 km square)
+
+This project includes a dedicated 3D area page that fits a 100m x 100m square around a coordinate.
+
+- URL format: `http://localhost:5173/area-3d.html?lat=43.074&lon=-89.384`
+- Query parameter validation:
+  - `lat` range: `[-85.051129, 85.051129]`
+  - `lon` range: `[-180, 180]`
+  - Invalid values fall back to defaults: `lat=43.074`, `lon=-89.384`
+
+CLI helper command:
+
+```bash
+npm run area3d -- --lat 43.074 --lon -89.384
+npm run area3d -- --lat 43.074 --lon -89.384 --open
+npm run area3d -- --base-url http://localhost:5173
+```
+
+The command prints the final `area-3d.html` URL and optionally opens it in your browser when `--open` is provided.

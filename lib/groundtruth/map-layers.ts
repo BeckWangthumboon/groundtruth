@@ -5,6 +5,7 @@ const SOURCE_ID = "gt-risk-cells";
 const FILL_LAYER_ID = "gt-risk-floor";
 const LINE_LAYER_ID = "gt-risk-wire";
 const EXTRUSION_LAYER_ID = "gt-risk-extrusions";
+const HEIGHT_SCALE_STATE_KEY = "heightScale";
 
 export const GT_LAYER_IDS = {
   source: SOURCE_ID,
@@ -21,6 +22,14 @@ export function clearRiskLayers(map: mapboxgl.Map) {
   if (map.getSource(SOURCE_ID)) {
     map.removeSource(SOURCE_ID);
   }
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function easeOutCubic(progress: number): number {
+  return 1 - Math.pow(1 - progress, 3);
 }
 
 export function drawRiskLayers(map: mapboxgl.Map, riskGrid: RiskGridData) {
@@ -84,10 +93,68 @@ export function drawRiskLayers(map: mapboxgl.Map, riskGrid: RiskGridData) {
         1,
         "#f97316",
       ],
-      "fill-extrusion-height": ["get", "height"],
+      "fill-extrusion-height": [
+        "*",
+        ["get", "height"],
+        ["coalesce", ["feature-state", HEIGHT_SCALE_STATE_KEY], 0],
+      ],
       "fill-extrusion-base": 0,
       "fill-extrusion-opacity": 0.9,
       "fill-extrusion-vertical-gradient": true,
     },
   });
+}
+
+export function animateRiskLayers(map: mapboxgl.Map, riskGrid: RiskGridData): () => void {
+  if (!map.getSource(SOURCE_ID) || !map.getLayer(EXTRUSION_LAYER_ID)) {
+    return () => {};
+  }
+
+  let frameId: number | null = null;
+  const startedAt = performance.now();
+
+  const tick = (now: number) => {
+    if (!map.getSource(SOURCE_ID) || !map.getLayer(EXTRUSION_LAYER_ID)) {
+      frameId = null;
+      return;
+    }
+
+    const elapsedSeconds = (now - startedAt) / 1000;
+
+    riskGrid.cells.features.forEach((feature, index) => {
+      const id = feature.id;
+      if (id === undefined || id === null) return;
+
+      const risk = Number(feature.properties.risk ?? 0);
+      const revealDelay = index * 0.02;
+      const revealProgress = clamp((elapsedSeconds - revealDelay) / 0.95, 0, 1);
+      const revealed = easeOutCubic(revealProgress);
+
+      const pulse =
+        risk >= 0.68 ? 1 + Math.sin(elapsedSeconds * 3.2 + index * 0.33) * 0.06 * revealed : 1;
+
+      map.setFeatureState(
+        { source: SOURCE_ID, id },
+        { [HEIGHT_SCALE_STATE_KEY]: clamp(revealed * pulse, 0, 1.2) }
+      );
+    });
+
+    frameId = requestAnimationFrame(tick);
+  };
+
+  frameId = requestAnimationFrame(tick);
+
+  return () => {
+    if (frameId !== null) {
+      cancelAnimationFrame(frameId);
+    }
+
+    if (!map.getSource(SOURCE_ID)) return;
+
+    riskGrid.cells.features.forEach((feature) => {
+      const id = feature.id;
+      if (id === undefined || id === null) return;
+      map.removeFeatureState({ source: SOURCE_ID, id }, HEIGHT_SCALE_STATE_KEY);
+    });
+  };
 }

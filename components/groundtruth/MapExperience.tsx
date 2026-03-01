@@ -6,11 +6,11 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { AlertCircle, BarChart3, Layers3, Orbit, Sparkles } from "lucide-react";
 import SearchBar from "@/components/groundtruth/SearchBar";
 import { fetchFirstGeocodeResult, fetchGeocodingSuggestions } from "@/lib/groundtruth/geocode";
-import { drawRiskLayers, GT_LAYER_IDS } from "@/lib/groundtruth/map-layers";
+import { animateRiskLayers, drawRiskLayers, GT_LAYER_IDS } from "@/lib/groundtruth/map-layers";
 import { buildRiskGrid } from "@/lib/groundtruth/risk-grid";
 import { GeocodeSuggestion, LocationSelection, RiskGridData, SceneMode } from "@/lib/groundtruth/types";
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "";
 const MAP_STYLE_DARK = "mapbox://styles/mapbox/dark-v11";
 const HERO_CENTER: [number, number] = [0, 20];
 const HERO_ZOOM = 1.5;
@@ -32,8 +32,10 @@ export default function MapExperience() {
   const [suggestions, setSuggestions] = useState<GeocodeSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [mapError, setMapError] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<LocationSelection | null>(null);
   const [riskGrid, setRiskGrid] = useState<RiskGridData | null>(null);
+  const showWireframeFallback = !hasToken || Boolean(mapError);
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const gridSectionRef = useRef<HTMLElement | null>(null);
@@ -41,6 +43,7 @@ export default function MapExperience() {
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const riskAnimationStopRef = useRef<(() => void) | null>(null);
   const lastFrameTimeRef = useRef<number>(0);
   const sceneRef = useRef<SceneMode>(scene);
 
@@ -114,9 +117,12 @@ export default function MapExperience() {
       setRiskGrid(nextGrid);
       setScene("grid");
       setSearchError(null);
+      setMapError(null);
 
       if (map) {
         stopRotation();
+        riskAnimationStopRef.current?.();
+        riskAnimationStopRef.current = null;
         map.stop();
 
         if (markerRef.current) markerRef.current.remove();
@@ -139,6 +145,7 @@ export default function MapExperience() {
             easing: (value) => 1 - Math.pow(1 - value, 3),
           });
           drawRiskLayers(map, nextGrid);
+          riskAnimationStopRef.current = animateRiskLayers(map, nextGrid);
         };
 
         runWhenStyleReady(map, enterGridMode);
@@ -175,6 +182,23 @@ export default function MapExperience() {
       }
       map.setProjection("mercator");
       clearAtmosphere(map);
+    });
+
+    map.on("load", () => {
+      setMapError(null);
+      if (sceneRef.current === "hero") {
+        startRotation();
+      }
+    });
+
+    map.on("error", (event) => {
+      const message = event.error?.message ?? "";
+      if (!message) return;
+      if (message.includes("401") || message.includes("403") || message.toLowerCase().includes("token")) {
+        setMapError("Mapbox token rejected. Ensure public token scopes include Styles:Read and Geocoding:Read.");
+        return;
+      }
+      setMapError(message);
     });
 
     map.on("mousemove", (event) => {
@@ -228,16 +252,20 @@ export default function MapExperience() {
       popupRef.current?.remove();
       markerRef.current?.remove();
       stopRotation();
+      riskAnimationStopRef.current?.();
+      riskAnimationStopRef.current = null;
       map.remove();
       mapRef.current = null;
     };
-  }, [applyHeroAtmosphere, clearAtmosphere, hasToken, stopRotation]);
+  }, [applyHeroAtmosphere, clearAtmosphere, hasToken, startRotation, stopRotation]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
     if (scene === "hero") {
+      riskAnimationStopRef.current?.();
+      riskAnimationStopRef.current = null;
       map.stop();
       runWhenStyleReady(map, () => {
         if (sceneRef.current !== "hero") return;
@@ -298,7 +326,7 @@ export default function MapExperience() {
     if (!query.trim()) return;
 
     if (!hasToken) {
-      setSearchError("Add NEXT_PUBLIC_MAPBOX_TOKEN to enable live search.");
+      setSearchError("Add NEXT_PUBLIC_MAPBOX_TOKEN (or NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN) to enable live search.");
       return;
     }
 
@@ -340,8 +368,8 @@ export default function MapExperience() {
     <div className="relative min-h-[215vh] bg-background text-foreground overflow-x-clip">
       <div className="fixed inset-0">
         <div ref={mapContainerRef} className="absolute inset-0" />
-        {!hasToken ? <div className="gt-tokenless-backdrop" /> : null}
-        {!hasToken && scene === "grid" ? (
+        {showWireframeFallback ? <div className="gt-tokenless-backdrop" /> : null}
+        {showWireframeFallback && scene === "grid" ? (
           <div className="gt-wireframe-scene" aria-hidden>
             <div className="gt-wireframe-plane" />
             <div className="gt-wireframe-platform" />
@@ -405,18 +433,29 @@ export default function MapExperience() {
             ) : null}
           </div>
 
-          {!hasToken ? (
-            <div className="mt-2 flex flex-col items-center gap-3 pointer-events-auto">
-              <p className="text-sm text-slate-300/80">
-                Add <code className="gt-inline-code">NEXT_PUBLIC_MAPBOX_TOKEN</code> later for live geocoding.
+          {mapError ? (
+            <div className="mt-1 min-h-6">
+              <p className="inline-flex items-center gap-2 text-sm text-amber-200 bg-amber-950/60 border border-amber-500/25 rounded-full px-4 py-1.5 pointer-events-auto">
+                <AlertCircle className="w-4 h-4" />
+                {mapError}
               </p>
-              <button type="button" className="gt-demo-button" onClick={handleDemoScene}>
-                Launch Demo Grid Scene
-              </button>
             </div>
-          ) : (
-            <p className="mt-4 text-xs text-slate-400/80">Press Enter to search and transition into the lower grid scene.</p>
-          )}
+          ) : null}
+
+          <div className="mt-2 flex flex-col items-center gap-3 pointer-events-auto">
+            {!hasToken ? (
+              <p className="text-sm text-slate-300/80">
+                Add <code className="gt-inline-code">NEXT_PUBLIC_MAPBOX_TOKEN</code> for live Mapbox rendering and search.
+              </p>
+            ) : (
+              <p className="text-xs text-slate-400/80">
+                Press Enter to search and transition into the lower grid scene.
+              </p>
+            )}
+            <button type="button" className="gt-demo-button" onClick={handleDemoScene}>
+              Launch Demo Grid Scene
+            </button>
+          </div>
         </div>
       </section>
 

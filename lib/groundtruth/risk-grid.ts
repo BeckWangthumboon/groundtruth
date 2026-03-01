@@ -88,6 +88,7 @@ export function buildRiskGrid(
 
       features.push({
         type: "Feature",
+        id: `${row}-${col}`,
         geometry: polygon,
         properties: {
           id: `${row}-${col}`,

@@ -1,7 +1,7 @@
 """
-Tester for all updatedBackend functionalities.
-Run from project root: python updatedBackend/test_backend.py
-Or with pytest: pytest updatedBackend/test_backend.py -v
+Tester for chatbot_backend functionalities.
+Run from project root: python chatbot_backend/test_backend.py
+Or with pytest: pytest chatbot_backend/test_backend.py -v
 """
 
 import base64
@@ -14,15 +14,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 # Core modules (no FastAPI); test6/test7/test8 import chat/app only when run
 try:
-    from updatedBackend.chat_config import (
+    from chatbot_backend.chat_config import (
         METRIC_IDS,
         DEFAULT_WEIGHTS,
         build_system_instruction,
     )
-    from updatedBackend.rank import rank_locations
-    from updatedBackend.weights import parse_weights_from_reply
-    from updatedBackend.keywords import parse_map_keywords_from_reply, write_keywords_to_file
-    from updatedBackend.tts import pcm_to_wav, synthesize_tts
+    from chatbot_backend.rank import rank_locations
+    from chatbot_backend.weights import parse_weights_from_reply
+    from chatbot_backend.keywords import parse_map_keywords_from_reply, write_keywords_to_file
+    from chatbot_backend.tts import pcm_to_wav, synthesize_tts
 except ImportError:
     from chat_config import METRIC_IDS, DEFAULT_WEIGHTS, build_system_instruction
     from rank import rank_locations
@@ -118,7 +118,7 @@ def test5():
 def test6():
     # Test chat input validation and rank-request detection; skip real Gemini call if key is placeholder
     try:
-        from updatedBackend.chat import chat, _is_rank_request
+        from chatbot_backend.chat import chat, _is_rank_request
     except ImportError:
         from chat import chat, _is_rank_request
     assert _is_rank_request("Rank them by safety") is True

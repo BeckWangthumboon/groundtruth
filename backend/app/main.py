@@ -33,6 +33,13 @@ from scripts_sumedh.pois_dynamic import (  # noqa: E402
     get_pois_by_preferences,
 )
 
+# include chatbot (chat + TTS) in the same process
+try:
+    from chatbot_backend.app import chat_router
+    _chat_router = chat_router
+except ImportError:
+    _chat_router = None
+
 app = FastAPI(title="Groundtruth Census API", version="0.1.0")
 _DYNAMIC_LABELS = set(POI_LABELS.keys()) | {"direct_competition"}
 
@@ -48,6 +55,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+if _chat_router is not None:
+    app.include_router(_chat_router)
 
 
 @app.get("/healthz")

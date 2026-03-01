@@ -1,12 +1,12 @@
 """
-FastAPI app: /api/chat and /api/tts endpoints matching the Next.js backend.
-Run from project root: uvicorn updatedBackend.app:app --reload
-Or from updatedBackend: uvicorn app:app --reload
+FastAPI app: /api/chat and /api/tts endpoints.
+Run standalone: uvicorn chatbot_backend.app:app --reload
+Also exposes chat_router for mounting in backend.app.main.
 """
 
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -19,15 +19,7 @@ except ImportError:
     from chat import chat
     from tts import synthesize_tts
 
-app = FastAPI(title="Location Assistant API", version="1.0.0")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+chat_router = APIRouter(prefix="", tags=["chat"])
 
 
 # --- Request/Response models ---
@@ -61,7 +53,7 @@ class TTSRequestBody(BaseModel):
 
 # --- Routes ---
 
-@app.post("/api/chat", response_model=ChatResponseBody)
+@chat_router.post("/api/chat", response_model=ChatResponseBody)
 def post_chat(body: ChatRequestBody) -> dict[str, Any]:
     """Chat with the location assistant (Gemini)."""
     try:
@@ -80,7 +72,7 @@ def post_chat(body: ChatRequestBody) -> dict[str, Any]:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/tts")
+@chat_router.post("/api/tts")
 def post_tts(body: TTSRequestBody) -> dict[str, Any]:
     """Text-to-speech via Google Cloud TTS. Returns { audioBase64, format }."""
     try:
@@ -94,6 +86,18 @@ def post_tts(body: TTSRequestBody) -> dict[str, Any]:
         raise HTTPException(status_code=502, detail=str(e))
 
 
-@app.get("/health")
+@chat_router.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+# Standalone app (for uvicorn chatbot_backend.app:app)
+app = FastAPI(title="Location Assistant API", version="1.0.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.include_router(chat_router)

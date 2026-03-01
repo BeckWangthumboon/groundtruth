@@ -616,6 +616,8 @@ body {
 /* ── Search UI ─────────────────────────────────── */
 
 .persona-toggle {
+  position: relative;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -689,6 +691,8 @@ body {
 
 
 .search-shell {
+  position: relative;
+  z-index: 3;
   width: min(780px, calc(100vw - 2rem));
   display: flex;
   align-items: center;
